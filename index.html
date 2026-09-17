@@ -1,0 +1,370 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
+<meta name="theme-color" content="#1F3A5F">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<title>예원 작업 등록</title>
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="icon" href="icon-192.png">
+<link rel="apple-touch-icon" href="apple-touch-icon.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@500;700;900&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --paper:#EEF0F2; --card:#FFFFFF; --ink:#141414; --ink-2:#4A4E55; --line:#C9CDD3;
+    --navy:#1F3A5F; --navy-ink:#FFFFFF; --mustard:#E3A51E; --mustard-ink:#1A1300;
+    --stop:#B3261E; --ok:#2E7D4F;
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  [hidden]{display:none !important}
+  html{font-size:112.5%}
+  body{background:var(--paper);color:var(--ink);font-family:"Noto Sans KR","Apple SD Gothic Neo","Malgun Gothic",sans-serif;font-weight:500;line-height:1.35;min-height:100vh}
+  .app{max-width:560px;margin:0 auto;padding:16px 14px 40px}
+  .screen{display:none}.screen.on{display:block}
+  .top{display:flex;justify-content:space-between;align-items:baseline;margin-bottom:14px}
+  .top .who{font-size:1.3rem;font-weight:900}
+  .top .clock{font-size:1.1rem;color:var(--ink-2);font-variant-numeric:tabular-nums}
+  .top button{background:none;border:0;color:var(--ink-2);font:inherit;font-size:.95rem;text-decoration:underline;padding:6px}
+  h1{font-size:1.5rem;font-weight:900;margin:8px 0 14px}
+  .hint{font-size:1.05rem;color:var(--ink-2);margin:0 0 14px}
+  .sync{font-size:.9rem;color:var(--ink-2);text-align:right;margin:-6px 0 10px}
+  .sync.bad{color:var(--stop);font-weight:700}
+  .now{background:var(--mustard);color:var(--mustard-ink);border-radius:18px;padding:22px 20px;margin-bottom:16px;min-height:150px}
+  .now .lbl{font-size:1.05rem;font-weight:700;opacity:.8}
+  .now .name{font-size:2.1rem;font-weight:900;line-height:1.15;margin:6px 0 10px;word-break:keep-all}
+  .now .since{font-size:1.15rem;font-weight:700;font-variant-numeric:tabular-nums}
+  .now.empty{background:var(--card);color:var(--ink);border:3px dashed var(--line)}
+  .now.empty .name{font-size:1.6rem;color:var(--ink-2)}
+  .btn{display:block;width:100%;border:0;border-radius:18px;font:inherit;font-weight:900;cursor:pointer;-webkit-tap-highlight-color:transparent;touch-action:manipulation}
+  .btn:active{transform:scale(.985)}
+  .btn:focus-visible{outline:4px solid var(--ok);outline-offset:3px}
+  .btn[disabled]{opacity:.5}
+  .btn-main{background:var(--navy);color:var(--navy-ink);font-size:1.7rem;padding:26px 20px;min-height:96px;margin-bottom:14px}
+  .btn-go{background:var(--mustard);color:var(--mustard-ink);font-size:1.8rem;padding:28px 20px;min-height:100px;margin-bottom:14px}
+  .btn-sub{background:var(--card);color:var(--ink);border:3px solid var(--line);font-size:1.25rem;padding:18px;margin-bottom:12px}
+  .btn-back{background:none;color:var(--ink-2);border:0;font-size:1.15rem;padding:16px;text-decoration:underline;font-weight:700}
+  .btn-stop{background:var(--card);color:var(--stop);border:3px solid var(--stop);font-size:1.15rem;padding:16px;margin-bottom:12px}
+  .grid{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:18px}
+  .grid .btn{background:var(--card);color:var(--ink);border:3px solid var(--line);font-size:1.3rem;padding:18px 10px;min-height:88px;display:flex;align-items:center;justify-content:center;text-align:center;word-break:keep-all;line-height:1.2}
+  .grp{font-size:1.05rem;font-weight:900;color:var(--ink-2);margin:6px 0 10px;padding-top:12px;border-top:4px solid var(--line)}
+  .grp:first-of-type{border-top:0;padding-top:0}
+  .ask{background:var(--card);border-radius:18px;padding:22px 20px;margin-bottom:16px;border:3px solid var(--line)}
+  .ask .big{font-size:2rem;font-weight:900;line-height:1.2;word-break:keep-all}
+  .ask .sm{font-size:1.1rem;color:var(--ink-2);margin-top:8px}
+  input[type=text],input[type=number]{width:100%;font:inherit;font-size:1.6rem;font-weight:700;padding:18px;border:3px solid var(--line);border-radius:16px;background:var(--card);color:var(--ink);text-align:center}
+  input:focus{outline:4px solid var(--navy);outline-offset:2px}
+  .qty{display:grid;grid-template-columns:1fr 1.6fr 1fr;gap:10px;align-items:center;margin:14px 0}
+  .qty .btn{font-size:2rem;padding:18px 0;min-height:84px;background:var(--card);border:3px solid var(--line);color:var(--ink)}
+  .qty10{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:16px}
+  .qty10 .btn{font-size:1.4rem;padding:16px 0;background:var(--card);border:3px solid var(--line);color:var(--ink)}
+  .list{background:var(--card);border-radius:16px;border:3px solid var(--line);overflow:hidden;margin-bottom:16px}
+  .row{display:grid;grid-template-columns:auto 1fr;gap:12px;padding:12px 14px;border-top:2px solid var(--line);font-size:1.05rem;align-items:baseline}
+  .row:first-child{border-top:0}
+  .row .t{font-variant-numeric:tabular-nums;color:var(--ink-2);font-weight:700;white-space:nowrap}
+  .row .p{font-weight:700;word-break:keep-all}
+  .row .p small{display:block;font-size:.9rem;color:var(--ink-2);font-weight:500}
+  table{width:100%;border-collapse:collapse;font-size:.95rem;background:var(--card)}
+  th,td{border:1px solid var(--line);padding:8px 6px;text-align:left;word-break:keep-all}
+  th{background:var(--paper);font-weight:900}
+  .wrap{overflow-x:auto;border-radius:12px;border:3px solid var(--line);margin-bottom:16px}
+  .toast{position:fixed;left:50%;bottom:28px;transform:translateX(-50%);background:var(--ink);color:var(--paper);font-size:1.15rem;font-weight:700;padding:14px 22px;border-radius:14px;opacity:0;transition:opacity .2s;pointer-events:none;max-width:92vw;text-align:center;z-index:9}
+  .toast.show{opacity:1}
+  @media (prefers-reduced-motion: reduce){ .btn:active{transform:none} .toast{transition:none} }
+</style>
+</head>
+<body>
+<div class="app">
+
+  <section class="screen" id="s-name">
+    <h1>내 이름을 눌러 주세요</h1>
+    <p class="hint">한 번만 고르면 이 폰이 기억합니다.</p>
+    <div class="grid" id="nameGrid"></div>
+  </section>
+
+  <section class="screen" id="s-home">
+    <div class="top">
+      <span class="who" id="who"></span>
+      <span class="clock" id="clock"></span>
+    </div>
+    <div class="sync" id="sync"></div>
+    <div class="now" id="nowCard"></div>
+    <button class="btn btn-main" id="btnChange">다른 일 시작하기</button>
+    <p class="hint">일이 바뀔 때마다 위 버튼을 한 번만 눌러 주세요. 안 누른 시간은 계산에서 빠집니다.</p>
+    <button class="btn btn-stop" id="btnUndo" hidden>방금 누른 것 취소하기</button>
+    <button class="btn btn-sub" id="btnCount" hidden>포장 끝난 개수 적기</button>
+    <button class="btn btn-sub" id="btnAll" hidden>오늘 전체 기록 보기</button>
+    <div class="list" id="todayList"></div>
+    <div class="top"><span></span><button id="btnRename">이름 바꾸기</button></div>
+  </section>
+
+  <section class="screen" id="s-pick">
+    <h1>지금 무슨 일을 시작하시나요?</h1>
+    <div id="pickGrid"></div>
+    <button class="btn btn-back" data-go="s-home">돌아가기</button>
+  </section>
+
+  <section class="screen" id="s-confirm">
+    <div class="ask">
+      <div class="big" id="cfName"></div>
+      <div class="sm" id="cfTime"></div>
+    </div>
+    <button class="btn btn-go" id="btnStart">네, 지금 시작</button>
+    <button class="btn btn-back" data-go="s-pick">아니오, 다시 고르기</button>
+  </section>
+
+  <section class="screen" id="s-etc">
+    <h1>무슨 일인지 적어 주세요</h1>
+    <input type="text" id="etcText" placeholder="예: 원단 정리" autocomplete="off">
+    <div style="height:14px"></div>
+    <button class="btn btn-go" id="btnEtcNext">다음</button>
+    <button class="btn btn-back" data-go="s-pick">돌아가기</button>
+  </section>
+
+  <section class="screen" id="s-count">
+    <h1>오늘 포장 끝난 개수</h1>
+    <p class="hint">제품을 누르고 개수를 적어 주세요.</p>
+    <div id="countGrid"></div>
+    <div class="list" id="countList"></div>
+    <button class="btn btn-back" data-go="s-home">돌아가기</button>
+  </section>
+  <section class="screen" id="s-count2">
+    <div class="ask">
+      <div class="big" id="ctName"></div>
+      <div class="sm">오늘 포장 끝난 개수</div>
+    </div>
+    <div class="qty">
+      <button class="btn" id="qMinus">－</button>
+      <input type="number" id="qty" inputmode="numeric" value="0" min="0">
+      <button class="btn" id="qPlus">＋</button>
+    </div>
+    <div class="qty10">
+      <button class="btn" data-d="-10">－10</button>
+      <button class="btn" data-d="10">＋10</button>
+    </div>
+    <button class="btn btn-go" id="btnSaveCount">저장</button>
+    <button class="btn btn-back" data-go="s-count">돌아가기</button>
+  </section>
+
+  <section class="screen" id="s-all">
+    <h1>오늘 전체 기록</h1>
+    <div class="wrap"><table id="allTable"></table></div>
+    <button class="btn btn-sub" id="btnReloadAll">새로 불러오기</button>
+    <button class="btn btn-back" data-go="s-home">돌아가기</button>
+  </section>
+
+</div>
+<div class="toast" id="toast"></div>
+
+<script>
+(function(){
+  // ============ 설정: 구글 시트 웹 앱 주소 (배포 후 나온 /exec 주소를 따옴표 안에 붙여넣기)
+  const SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbz_bdMhHIwyGthi9aaUJ4Ba1nd5SZNKKh5jDWjJnwQDE4sVHRTD6Vqpx-kX-xqLg-Cj/exec';
+  const APP_VERSION = '1.0.0';
+
+  // ============ 기준 데이터
+  const PEOPLE = [
+    ['김명숙 차장님','포장','count'], ['김옥순 과장님','봉제'], ['김순미 과장님','봉제'],
+    ['김민호 주임님','봉제'], ['남중일 반장님','재단'], ['박인숙 사원님','봉제'],
+    ['김명숙 사원님','봉제'], ['김근영 사원님','봉제'], ['신미숙 사원님','봉제'],
+    ['김인숙 사원님','봉제'], ['전계진 실장님','포장','admin'],
+  ];
+  const GROUPS = [
+    ['수의·이불·매트', ['수의','수시이불세트','황금이불매트세트','운구매트']],
+    ['입관부속', ['멧베','입관부속(하대)','입관부속(버선)','입관부속(베개)','입관부속(면모)','입관부속(염습끈)','입관부속(턱받이)']],
+    ['염보·꽃신·고깔', ['염보','목화꽃신','삼베꽃신','고깔']],
+    ['수시복·포·관보', ['용안위생포','목화수시복','목화수시포','바디백','프리원관보','와플관보']],
+    ['제품 외', ['거래처 납품','공장 및 창고 정리정돈','기타(직접입력)']],
+  ];
+  const NON_PRODUCT = ['거래처 납품','공장 및 창고 정리정돈','기타(직접입력)'];
+  const PRODUCTS = GROUPS.flatMap(g => g[1]).filter(p => !NON_PRODUCT.includes(p));
+  const DAY_START = 8*60+30, DAY_END = 18*60;
+
+  // ============ 저장소 (폰 안: 이름·오늘 기록 사본·전송 대기)
+  const store = {
+    get(k, d){ try{ const v = localStorage.getItem(k); return v ? JSON.parse(v) : d; }catch(e){ return d; } },
+    set(k, v){ try{ localStorage.setItem(k, JSON.stringify(v)); }catch(e){} },
+  };
+  let me = store.get('me', null);
+  let device = store.get('device', null); if(!device){ device = 'd' + Math.random().toString(36).slice(2,8); store.set('device', device); }
+  let day = store.get('day', { date: '', logs: [], counts: [] });  // 서버에서 받은 오늘 기록 사본
+  let queue = store.get('queue', []);                                 // 전송 못 한 등록
+  let pending = null, countProduct = null, sending = false;
+
+  // ============ 유틸
+  const $ = id => document.getElementById(id);
+  const pad = n => String(n).padStart(2,'0');
+  const today = () => { const d = new Date(); return d.getFullYear()+'-'+pad(d.getMonth()+1)+'-'+pad(d.getDate()); };
+  const nowHM = () => { const d = new Date(); return pad(d.getHours())+':'+pad(d.getMinutes()); };
+  const toMin = t => { const [h,m] = String(t).split(':').map(Number); return h*60+m; };
+  const toHM = m => pad(Math.floor(m/60))+':'+pad(m%60);
+  function show(id){ document.querySelectorAll('.screen').forEach(s=>s.classList.remove('on')); $(id).classList.add('on'); window.scrollTo(0,0); }
+  function toast(t, ms){ const el=$('toast'); el.textContent=t; el.classList.add('show'); clearTimeout(el._t); el._t=setTimeout(()=>el.classList.remove('show'), ms||1800); }
+  const person = () => PEOPLE.find(p => p[0] === me);
+  const role = () => { const p = person(); return p ? (p[2] || '') : ''; };
+  const startHM = () => { const m = toMin(nowHM()); return toHM(m < DAY_START ? DAY_START : m); };
+
+  function ensureToday(){ if(day.date !== today()){ day = { date: today(), logs: [], counts: [] }; store.set('day', day); } }
+  // 화면용 규칙: 18:00 지났으면 열린 기록은 18:00으로 표시
+  function viewLogs(){ ensureToday(); const late = toMin(nowHM()) > DAY_END;
+    return day.logs.map(l => (!l.end && late) ? { ...l, end: '18:00' } : l); }
+
+  // ============ 서버 통신 (구글 시트)
+  const configured = () => SCRIPT_URL && !SCRIPT_URL.includes('PASTE_');
+  function setSync(t, bad){ const el=$('sync'); el.textContent = t || ''; el.className = 'sync' + (bad ? ' bad' : ''); }
+  function applyServer(data){
+    if(!data || !data.ok) return false;
+    day = { date: data.date, logs: (data.logs||[]).filter(l => l.who === me), counts: data.counts || [] };
+    if(role()==='admin') day.all = data.logs || [];
+    store.set('day', day); return true;
+  }
+  async function apiGet(all){
+    if(!configured()) throw new Error('not configured');
+    const u = SCRIPT_URL + '?who=' + encodeURIComponent(me) + '&date=' + today() + (all ? '&all=1' : '') + '&v=' + Date.now();
+    const r = await fetch(u, { method:'GET', redirect:'follow' }); return r.json();
+  }
+  async function apiPost(obj){
+    if(!configured()) throw new Error('not configured');
+    const r = await fetch(SCRIPT_URL, { method:'POST', redirect:'follow', body: JSON.stringify({ ...obj, who: me, device, all: role()==='admin' }) });
+    return r.json();
+  }
+  // 대기열 전송
+  async function flush(){
+    if(sending || !queue.length || !navigator.onLine) return; sending = true;
+    try{
+      while(queue.length){ const item = queue[0]; const data = await apiPost(item); if(!data || !data.ok) throw new Error(data && data.error || 'fail');
+        queue.shift(); store.set('queue', queue); applyServer(data); }
+      setSync('저장됨 ✓'); if($('s-home').classList.contains('on')) renderHome();
+    }catch(e){ setSync('저장 대기 ' + queue.length + '건 (인터넷 연결되면 자동 전송)', true); }
+    finally{ sending = false; }
+  }
+  async function refresh(){
+    if(!configured()){ setSync('시험 모드: 이 폰에만 저장', true); return; }
+    if(queue.length){ await flush(); return; }
+    try{ applyServer(await apiGet(role()==='admin')); setSync('저장됨 ✓'); }
+    catch(e){ setSync('인터넷 연결 확인 중… (기록은 폰에 남아 있어요)', true); }
+  }
+  // 등록 보내기: 먼저 화면에 반영하고, 서버로 보내고, 실패하면 대기열
+  async function send(obj, localApply){
+    ensureToday(); localApply(); store.set('day', day); renderHome();
+    if(!configured()) return;
+    try{ setSync('저장 중…'); const data = await apiPost(obj); if(!data || !data.ok) throw new Error(data && data.error || 'fail');
+      applyServer(data); renderHome(); setSync('저장됨 ✓'); }
+    catch(e){ queue.push(obj); store.set('queue', queue); setSync('저장 대기 ' + queue.length + '건 (인터넷 연결되면 자동 전송)', true);
+      toast('인터넷이 안 돼서 폰에 저장했어요. 연결되면 자동으로 올라갑니다', 2600); }
+  }
+
+  // ============ 화면: 이름
+  function renderNames(){
+    const g = $('nameGrid'); g.innerHTML='';
+    PEOPLE.forEach(p => { const b=document.createElement('button'); b.className='btn'; b.textContent=p[0];
+      b.onclick=()=>{ me=p[0]; store.set('me',me); day={date:'',logs:[],counts:[]}; store.set('day',day); toast(p[0]+' 으로 저장했어요'); renderHome(); show('s-home'); refresh(); }; g.appendChild(b); });
+  }
+
+  // ============ 화면: 홈
+  function renderHome(){
+    ensureToday();
+    $('who').textContent = me;
+    const mine = viewLogs();
+    const cur = mine.find(l => !l.end);
+    const card = $('nowCard');
+    if(cur){ card.className='now'; card.innerHTML = `<div class="lbl">지금 하는 일</div><div class="name">${cur.product}</div><div class="since">${cur.start}부터</div>`; }
+    else { card.className='now empty'; card.innerHTML = `<div class="lbl">지금 하는 일</div><div class="name">아직 오늘 일을 누르지 않았어요</div>`; }
+    $('btnChange').textContent = cur ? '다른 일 시작하기' : '오늘 첫 일 시작하기';
+    const last = mine[mine.length-1];
+    $('btnUndo').hidden = !(last && !last.end && (toMin(nowHM()) - toMin(last.start)) < 15);
+    const r = role();
+    $('btnCount').hidden = !(r==='count' || r==='admin');
+    $('btnAll').hidden = !(r==='admin');
+    const list = $('todayList'); list.innerHTML='';
+    if(mine.length){ mine.forEach(l => { const row=document.createElement('div'); row.className='row';
+      row.innerHTML=`<span class="t">${l.start}~${l.end || '지금'}</span><span class="p">${l.product}</span>`; list.appendChild(row); }); }
+    else list.innerHTML = '<div class="row"><span class="t">오늘</span><span class="p" style="color:var(--ink-2)">기록 없음</span></div>';
+  }
+
+  // ============ 화면: 제품 고르기 → 확인 → 시작
+  function renderPick(){
+    const g = $('pickGrid'); g.innerHTML='';
+    GROUPS.forEach(([name, items]) => {
+      const h=document.createElement('div'); h.className='grp'; h.textContent=name; g.appendChild(h);
+      const grid=document.createElement('div'); grid.className='grid';
+      items.forEach(it => { const b=document.createElement('button'); b.className='btn'; b.textContent=it;
+        b.onclick=()=>{ if(it==='기타(직접입력)'){ $('etcText').value=''; show('s-etc'); setTimeout(()=>$('etcText').focus(),50); } else prepare(it); };
+        grid.appendChild(b); });
+      g.appendChild(grid);
+    });
+  }
+  function prepare(product){
+    const p = person(); pending = { product, proc: p ? p[1] : '' };
+    $('cfName').textContent = product;
+    $('cfTime').textContent = startHM() + ' 부터로 기록됩니다';
+    show('s-confirm');
+  }
+  $('btnEtcNext').onclick = () => { const t=$('etcText').value.trim(); if(!t){ toast('무슨 일인지 적어 주세요'); return; } prepare('기타: '+t); };
+  $('btnStart').onclick = () => {
+    const start = startHM(); const obj = { type:'start', date: today(), product: pending.product, proc: pending.proc, start };
+    send(obj, () => {
+      day.logs.forEach(l => { if(!l.end){ let e = toMin(start) > DAY_END ? '18:00' : start; if(toMin(e) < toMin(l.start)) e = l.start; l.end = e; } });
+      day.logs.push({ date: today(), who: me, product: pending.product, proc: pending.proc, start, end: '' });
+    });
+    toast(pending.product + ' 시작했어요'); show('s-home');
+  };
+  $('btnUndo').onclick = () => {
+    send({ type:'undo', date: today() }, () => {
+      day.logs.pop(); const prev = day.logs[day.logs.length-1]; if(prev) prev.end = '';
+    });
+    toast('취소했어요');
+  };
+
+  // ============ 화면: 완성 수량
+  function renderCount(){
+    const g=$('countGrid'); g.innerHTML=''; const grid=document.createElement('div'); grid.className='grid';
+    PRODUCTS.forEach(it => { const b=document.createElement('button'); b.className='btn'; b.textContent=it;
+      b.onclick=()=>{ countProduct=it; $('ctName').textContent=it; const ex = day.counts.find(c=>c.product===it); $('qty').value = ex? ex.qty : 0; show('s-count2'); }; grid.appendChild(b); });
+    g.appendChild(grid);
+    const list=$('countList'); list.innerHTML='';
+    if(day.counts.length){ day.counts.forEach(c=>{ const r=document.createElement('div'); r.className='row'; r.innerHTML=`<span class="t">${c.qty}개</span><span class="p">${c.product}<small>${c.who}</small></span>`; list.appendChild(r); }); }
+    else list.innerHTML='<div class="row"><span class="t">오늘</span><span class="p" style="color:var(--ink-2)">아직 적은 개수 없음</span></div>';
+  }
+  const bump = d => { const i=$('qty'); i.value = Math.max(0, (parseInt(i.value,10)||0) + d); };
+  $('qMinus').onclick=()=>bump(-1); $('qPlus').onclick=()=>bump(1);
+  document.querySelectorAll('.qty10 .btn').forEach(b => b.onclick=()=>bump(parseInt(b.dataset.d,10)));
+  $('btnSaveCount').onclick = () => {
+    const q = Math.max(0, parseInt($('qty').value,10)||0); const prod = countProduct;
+    send({ type:'count', date: today(), product: prod, qty: q }, () => {
+      const ex = day.counts.find(c=>c.product===prod); if(ex){ ex.qty=q; ex.who=me; } else day.counts.push({ date: today(), product: prod, qty: q, who: me });
+    });
+    toast(prod+' '+q+'개 저장했어요'); renderCount(); show('s-count');
+  };
+
+  // ============ 화면: 전체 기록 (실장)
+  function renderAll(){
+    const rows = day.all || [];
+    let h = '<tr><th>이름</th><th>제품</th><th>시작</th><th>종료</th><th>분</th></tr>';
+    rows.forEach(l => h += `<tr><td>${l.who}</td><td>${l.product}</td><td>${l.start}</td><td>${l.end || '진행 중'}</td><td>${l.mins ?? ''}</td></tr>`);
+    if(!rows.length) h += '<tr><td colspan="5">오늘 기록 없음 (새로 불러오기를 눌러 보세요)</td></tr>';
+    if(day.counts.length){ h += '<tr><th colspan="5">오늘 포장 끝난 개수</th></tr>'; day.counts.forEach(c => h += `<tr><td>${c.who}</td><td>${c.product}</td><td colspan="3">${c.qty}개</td></tr>`); }
+    $('allTable').innerHTML = h;
+  }
+  $('btnReloadAll').onclick = async () => { await refresh(); renderAll(); toast('불러왔어요'); };
+
+  // ============ 이동·시계·시작
+  $('btnChange').onclick = () => { renderPick(); show('s-pick'); };
+  $('btnCount').onclick = () => { renderCount(); show('s-count'); };
+  $('btnAll').onclick = async () => { await refresh(); renderAll(); show('s-all'); };
+  $('btnRename').onclick = () => show('s-name');
+  document.querySelectorAll('[data-go]').forEach(b => b.onclick = () => { if(b.dataset.go==='s-home') renderHome(); if(b.dataset.go==='s-pick') renderPick(); if(b.dataset.go==='s-count') renderCount(); show(b.dataset.go); });
+  setInterval(()=>{ $('clock').textContent = nowHM(); }, 1000); $('clock').textContent = nowHM();
+  setInterval(flush, 60*1000);
+  window.addEventListener('online', flush);
+  document.addEventListener('visibilitychange', () => { if(!document.hidden && me){ refresh().then(()=>{ if($('s-home').classList.contains('on')) renderHome(); }); } });
+  if('serviceWorker' in navigator){ navigator.serviceWorker.register('sw.js').catch(()=>{}); }
+
+  renderNames();
+  if(me){ renderHome(); show('s-home'); refresh().then(renderHome); } else show('s-name');
+})();
+</script>
+</body>
+</html>
