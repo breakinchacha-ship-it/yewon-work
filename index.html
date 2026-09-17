@@ -104,6 +104,7 @@
     <div class="now" id="nowCard"></div>
     <button class="btn btn-main" id="btnChange">다른 일 시작하기</button>
     <p class="hint">일이 바뀔 때마다 위 버튼을 한 번만 눌러 주세요. 안 누른 시간은 계산에서 빠집니다.</p>
+    <button class="btn btn-stop" id="btnStop" hidden>지금 하는 일 끝내기 (사무실 복귀)</button>
     <button class="btn btn-sub" id="btnCount" hidden>포장 끝난 개수 적기</button>
     <button class="btn btn-sub" id="btnAll" hidden>오늘 전체 기록 보기</button>
     <div class="list" id="todayList"></div>
@@ -185,11 +186,11 @@
 (function(){
   // ============ 설정: 구글 시트 웹 앱 주소 (배포 후 나온 /exec 주소를 따옴표 안에 붙여넣기)
   const SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbz_bdMhHIwyGthi9aaUJ4Ba1nd5SZNKKh5jDWjJnwQDE4sVHRTD6Vqpx-kX-xqLg-Cj/exec';
-  const APP_VERSION = '1.2.1';
+  const APP_VERSION = '1.3.0';
 
   // ============ 기준 데이터
   const PEOPLE = [
-    ['김명숙 차장님','포장','count'], ['김옥순 과장님','봉제'], ['김순미 과장님','봉제'],
+    ['김명숙 차장님','포장','count'], ['김옥순 과장님','봉제'], ['김순미 과장님','봉제','office'],
     ['김민호 주임님','봉제'], ['남중일 반장님','재단'], ['박인숙 여사님','봉제'],
     ['김명숙 여사님','봉제'], ['김근영 여사님','봉제'], ['신미숙 여사님','봉제'],
     ['김인숙 여사님','봉제'], ['전계진 실장님','포장','admin'],
@@ -199,9 +200,10 @@
     ['수시용품', ['고깔','목화수시복','멧베','목화꽃신','목화수시포']],
     ['입관부속', ['하대','버선','베개','면모','염습끈','턱받이']],
     ['운구 · 의전 용품', ['프리원관보','와플관보','바디백','LED위명패']],
-    ['제품 외', ['거래처 납품','공장 및 창고 정리정돈','기타(직접입력)']],
+    ['기타', ['우라납바','우라벨크로','매트납바']],
+    ['제품 외', ['공장 및 창고 정리정돈','기타(직접입력)']],
   ];
-  const NON_PRODUCT = ['거래처 납품','공장 및 창고 정리정돈','기타(직접입력)'];
+  const NON_PRODUCT = ['공장 및 창고 정리정돈','기타(직접입력)'];
   const PRODUCTS = GROUPS.flatMap(g => g[1]).filter(p => !NON_PRODUCT.includes(p));
   const DAY_START = 8*60+30, DAY_END = 18*60;
 
@@ -304,6 +306,7 @@
     else { card.className='now empty'; card.innerHTML = `<div class="lbl">지금 하는 일</div><div class="name">아직 오늘 일을 누르지 않았어요</div>`; }
     $('btnChange').textContent = cur ? '다른 일 시작하기' : '시작하기';
     const r = role();
+    $('btnStop').hidden = !(cur && (r==='office' || r==='admin'));
     $('btnCount').hidden = !(r==='count' || r==='admin');
     $('btnAll').hidden = !(r==='admin');
     const list = $('todayList'); list.innerHTML='';
@@ -340,6 +343,15 @@
     });
     show('s-home'); flashDone(pending.product + ' 시작', start + ' 부터');
   };
+  // ============ 끝내기 (사무직이 현장 일을 마치고 돌아갈 때)
+  $('btnStop').onclick = () => {
+    ensureToday(); const cur = day.logs.find(l => !l.end); if(!cur) return;
+    let at = nowHM(); if(toMin(at) > DAY_END) at = '18:00'; if(toMin(at) < toMin(cur.start)) at = cur.start;
+    const prod = cur.product;
+    send({ type:'stop', date: today(), at }, () => { cur.end = at; });
+    flashDone(prod + ' 끝', at + ' 까지'); show('s-home');
+  };
+
   // ============ 화면: 시작 시각 수정 / 기록 삭제 (숫자판으로 직접 입력)
   let edIdx = -1, edDigits = '';
   function edLimits(){ ensureToday(); const l = day.logs[edIdx]; const prev = day.logs[edIdx-1];
