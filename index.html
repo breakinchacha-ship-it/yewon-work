@@ -77,14 +77,10 @@
   .done .s{font-size:1.2rem;opacity:.85;margin-top:8px}
   .row{grid-template-columns:auto 1fr auto}
   .row .e{background:var(--card);border:2px solid var(--line);border-radius:10px;font:inherit;font-size:.95rem;font-weight:700;padding:6px 10px;color:var(--ink-2)}
-  .tm-big{font-size:3rem;font-weight:900;text-align:center;font-variant-numeric:tabular-nums;margin-top:10px;color:var(--navy)}
-  .tm-lbl{font-size:1.05rem;font-weight:900;color:var(--ink-2);margin:10px 0 6px}
-  .tm-grid{display:grid;gap:8px;margin-bottom:8px}
-  .tm-grid.h{grid-template-columns:repeat(5,1fr)}
-  .tm-grid.m{grid-template-columns:repeat(6,1fr)}
-  .tm-grid .btn{font-size:1.3rem;padding:16px 0;background:var(--card);border:3px solid var(--line);color:var(--ink);border-radius:14px}
-  .tm-grid .btn.sel{background:var(--navy);color:var(--navy-ink);border-color:var(--navy)}
-  .tm-grid .btn.off{opacity:.3}
+  .tm-big{font-size:3.2rem;font-weight:900;text-align:center;font-variant-numeric:tabular-nums;margin-top:10px;color:var(--navy);letter-spacing:.06em}
+  .pad{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin:6px 0 14px}
+  .pad .btn{font-size:1.9rem;padding:18px 0;min-height:76px;background:var(--card);border:3px solid var(--line);color:var(--ink);border-radius:16px}
+  .pad .btn.fn{font-size:1.15rem;color:var(--ink-2)}
   .toast{position:fixed;left:50%;bottom:28px;transform:translateX(-50%);background:var(--ink);color:var(--paper);font-size:1.15rem;font-weight:700;padding:14px 22px;border-radius:14px;opacity:0;transition:opacity .2s;pointer-events:none;max-width:92vw;text-align:center;z-index:9}
   .toast.show{opacity:1}
   @media (prefers-reduced-motion: reduce){ .btn:active{transform:none} .toast{transition:none} }
@@ -165,13 +161,10 @@
   <section class="screen" id="s-edit">
     <div class="ask">
       <div class="big" id="edName"></div>
-      <div class="sm">실제로 시작한 시각을 눌러 주세요</div>
-      <div class="tm-big" id="edTime">00:00</div>
+      <div class="sm">실제로 시작한 시각을 숫자로 눌러 주세요 (예: 8시 5분 → 0 8 0 5)</div>
+      <div class="tm-big" id="edTime">__:__</div>
     </div>
-    <div class="tm-lbl">시</div>
-    <div class="tm-grid h" id="edHours"></div>
-    <div class="tm-lbl">분</div>
-    <div class="tm-grid m" id="edMins"></div>
+    <div class="pad" id="edPad"></div>
     <button class="btn btn-go" id="btnEdSave">이 시각으로 저장</button>
     <button class="btn btn-stop" id="btnEdDel">이 기록 지우기</button>
     <button class="btn btn-back" data-go="s-home">돌아가기</button>
@@ -192,7 +185,7 @@
 (function(){
   // ============ 설정: 구글 시트 웹 앱 주소 (배포 후 나온 /exec 주소를 따옴표 안에 붙여넣기)
   const SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbz_bdMhHIwyGthi9aaUJ4Ba1nd5SZNKKh5jDWjJnwQDE4sVHRTD6Vqpx-kX-xqLg-Cj/exec';
-  const APP_VERSION = '1.2.0';
+  const APP_VERSION = '1.2.1';
 
   // ============ 기준 데이터
   const PEOPLE = [
@@ -347,30 +340,34 @@
     });
     show('s-home'); flashDone(pending.product + ' 시작', start + ' 부터');
   };
-  // ============ 화면: 시작 시각 수정 / 기록 삭제 (시·분 버튼으로 직접 선택)
-  let edIdx = -1, edH = 8, edM = 30;
-  const HOURS = [8,9,10,11,12,13,14,15,16,17], MINS = [0,5,10,15,20,25,30,35,40,45,50,55];
+  // ============ 화면: 시작 시각 수정 / 기록 삭제 (숫자판으로 직접 입력)
+  let edIdx = -1, edDigits = '';
   function edLimits(){ ensureToday(); const l = day.logs[edIdx]; const prev = day.logs[edIdx-1];
     const lo = prev ? toMin(prev.start) + 1 : DAY_START;
     const hi = l.end ? toMin(l.end) : Math.min(toMin(nowHM()), DAY_END);
     return [lo, Math.max(lo, hi)]; }
-  function edRender(){
-    const [lo, hi] = edLimits(); const cur = edH*60 + edM;
-    $('edTime').textContent = toHM(cur);
-    const hg = $('edHours'); hg.innerHTML='';
-    HOURS.forEach(h => { const b=document.createElement('button'); b.className='btn'+(h===edH?' sel':''); b.textContent=pad(h);
-      const possible = (h*60+55) >= lo && (h*60) <= hi; if(!possible) b.classList.add('off');
-      b.onclick=()=>{ if(!possible){ toast('그 시각은 고를 수 없어요'); return; } edH=h; edClamp(); edRender(); }; hg.appendChild(b); });
-    const mg = $('edMins'); mg.innerHTML='';
-    MINS.forEach(m => { const b=document.createElement('button'); b.className='btn'+(m===edM?' sel':''); b.textContent=pad(m);
-      const v = edH*60+m; const possible = v >= lo && v <= hi; if(!possible) b.classList.add('off');
-      b.onclick=()=>{ if(!possible){ toast('그 시각은 고를 수 없어요'); return; } edM=m; edRender(); }; mg.appendChild(b); });
+  // 입력한 숫자 → 분. 3자리(830)면 8:30, 4자리(0830)면 08:30. 아니면 null
+  function edValue(){ let d = edDigits; if(d.length===3) d = '0'+d; if(d.length!==4) return null;
+    const h = parseInt(d.slice(0,2),10), m = parseInt(d.slice(2),10); if(h>23 || m>59) return null; return h*60+m; }
+  function edRender(){ let d = edDigits; if(d.length===3) d='0'+d; const t = (d+'____').slice(0,4);
+    $('edTime').textContent = t.slice(0,2).replace(/_/g,'_') + ':' + t.slice(2); }
+  function edPress(k){
+    if(k==='⌫'){ edDigits = edDigits.slice(0,-1); }
+    else if(k==='지우기'){ edDigits=''; }
+    else { if(edDigits.length>=4) edDigits=''; edDigits += k; }
+    edRender();
   }
-  function edClamp(){ const [lo, hi] = edLimits(); let v = edH*60+edM; if(v<lo) v=lo; if(v>hi) v=hi; edH=Math.floor(v/60); edM=Math.floor((v%60)/5)*5; }
+  (function buildPad(){ const pad=$('edPad'); pad.innerHTML='';
+    ['1','2','3','4','5','6','7','8','9','지우기','0','⌫'].forEach(k => { const b=document.createElement('button'); b.className='btn'+(/\d/.test(k)?'':' fn'); b.textContent=k; b.onclick=()=>edPress(k); pad.appendChild(b); }); })();
   function openEdit(i){ ensureToday(); edIdx = i; const l = day.logs[i]; if(!l) return;
-    const v = toMin(l.start); edH = Math.floor(v/60); edM = Math.floor((v%60)/5)*5; $('edName').textContent = l.product; edRender(); show('s-edit'); }
+    edDigits = ''; $('edName').textContent = l.product + '  (지금 ' + l.start + ')'; edRender(); show('s-edit'); }
   $('btnEdSave').onclick = () => {
-    const l = day.logs[edIdx]; if(!l) return; const oldStart = l.start, newStart = toHM(edH*60+edM);
+    const l = day.logs[edIdx]; if(!l) return; const v = edValue();
+    if(v===null){ toast('시각을 네 자리로 눌러 주세요 (예: 0830)'); return; }
+    const [lo, hi] = edLimits();
+    if(v < lo){ toast(edIdx>0 ? '이전 기록 시작(' + toHM(lo-1) + ')보다 앞으로는 안 돼요' : '08:30보다 앞으로는 안 돼요'); return; }
+    if(v > hi){ toast((day.logs[edIdx].end ? '이 기록 끝(' : '지금(') + toHM(hi) + ')보다 뒤로는 안 돼요'); return; }
+    const oldStart = l.start, newStart = toHM(v);
     if(oldStart === newStart){ show('s-home'); return; }
     send({ type:'edit', date: today(), row: l.row || null, product: l.product, oldStart, newStart }, () => {
       l.start = newStart; const prev = day.logs[edIdx-1]; if(prev && prev.end === oldStart) prev.end = newStart;
