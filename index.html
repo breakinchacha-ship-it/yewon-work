@@ -39,7 +39,7 @@
   .now.empty{background:var(--card);color:var(--ink);border:3px dashed var(--line)}
   .now.empty .name{font-size:1.6rem;color:var(--ink-2)}
   .btn{display:block;width:100%;border:0;border-radius:18px;font:inherit;font-weight:900;cursor:pointer;-webkit-tap-highlight-color:transparent;touch-action:manipulation}
-  .btn:active{transform:scale(.985)}
+  .btn:active,.btn.pressed{transform:scale(.97);filter:brightness(.82)}
   .btn:focus-visible{outline:4px solid var(--ok);outline-offset:3px}
   .btn[disabled]{opacity:.5}
   .btn-main{background:var(--navy);color:var(--navy-ink);font-size:1.7rem;padding:26px 20px;min-height:96px;margin-bottom:14px}
@@ -70,6 +70,16 @@
   th,td{border:1px solid var(--line);padding:8px 6px;text-align:left;word-break:keep-all}
   th{background:var(--paper);font-weight:900}
   .wrap{overflow-x:auto;border-radius:12px;border:3px solid var(--line);margin-bottom:16px}
+  .done{position:fixed;inset:0;background:var(--navy);color:#fff;display:none;align-items:center;justify-content:center;flex-direction:column;text-align:center;padding:30px;z-index:20}
+  .done.on{display:flex}
+  .done .chk{font-size:5rem;line-height:1;margin-bottom:12px}
+  .done .t{font-size:2rem;font-weight:900;word-break:keep-all}
+  .done .s{font-size:1.2rem;opacity:.85;margin-top:8px}
+  .row{grid-template-columns:auto 1fr auto}
+  .row .e{background:var(--card);border:2px solid var(--line);border-radius:10px;font:inherit;font-size:.95rem;font-weight:700;padding:6px 10px;color:var(--ink-2)}
+  .tm{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin:14px 0}
+  .tm .btn{font-size:1.25rem;padding:18px 6px;background:var(--card);border:3px solid var(--line);color:var(--ink)}
+  .tm .big{font-size:2.6rem;font-weight:900;text-align:center;grid-column:1/3;font-variant-numeric:tabular-nums;padding:6px 0}
   .toast{position:fixed;left:50%;bottom:28px;transform:translateX(-50%);background:var(--ink);color:var(--paper);font-size:1.15rem;font-weight:700;padding:14px 22px;border-radius:14px;opacity:0;transition:opacity .2s;pointer-events:none;max-width:92vw;text-align:center;z-index:9}
   .toast.show{opacity:1}
   @media (prefers-reduced-motion: reduce){ .btn:active{transform:none} .toast{transition:none} }
@@ -148,6 +158,23 @@
     <button class="btn btn-back" data-go="s-count">돌아가기</button>
   </section>
 
+  <section class="screen" id="s-edit">
+    <div class="ask">
+      <div class="big" id="edName"></div>
+      <div class="sm">시작 시각을 맞춰 주세요</div>
+    </div>
+    <div class="tm">
+      <div class="big" id="edTime">00:00</div>
+      <button class="btn" data-m="-30">30분 앞으로</button>
+      <button class="btn" data-m="30">30분 뒤로</button>
+      <button class="btn" data-m="-5">5분 앞으로</button>
+      <button class="btn" data-m="5">5분 뒤로</button>
+    </div>
+    <button class="btn btn-go" id="btnEdSave">이 시각으로 저장</button>
+    <button class="btn btn-stop" id="btnEdDel">이 기록 지우기</button>
+    <button class="btn btn-back" data-go="s-home">돌아가기</button>
+  </section>
+
   <section class="screen" id="s-all">
     <h1>오늘 전체 기록</h1>
     <div class="wrap"><table id="allTable"></table></div>
@@ -156,26 +183,27 @@
   </section>
 
 </div>
+<div class="done" id="done"><div class="chk">✓</div><div class="t" id="doneT"></div><div class="s" id="doneS"></div></div>
 <div class="toast" id="toast"></div>
 
 <script>
 (function(){
   // ============ 설정: 구글 시트 웹 앱 주소 (배포 후 나온 /exec 주소를 따옴표 안에 붙여넣기)
   const SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbz_bdMhHIwyGthi9aaUJ4Ba1nd5SZNKKh5jDWjJnwQDE4sVHRTD6Vqpx-kX-xqLg-Cj/exec';
-  const APP_VERSION = '1.0.1';
+  const APP_VERSION = '1.1.1';
 
   // ============ 기준 데이터
   const PEOPLE = [
     ['김명숙 차장님','포장','count'], ['김옥순 과장님','봉제'], ['김순미 과장님','봉제'],
-    ['김민호 주임님','봉제'], ['남중일 반장님','재단'], ['박인숙 사원님','봉제'],
-    ['김명숙 사원님','봉제'], ['김근영 사원님','봉제'], ['신미숙 사원님','봉제'],
-    ['김인숙 사원님','봉제'], ['전계진 실장님','포장','admin'],
+    ['김민호 주임님','봉제'], ['남중일 반장님','재단'], ['박인숙 여사님','봉제'],
+    ['김명숙 여사님','봉제'], ['김근영 여사님','봉제'], ['신미숙 여사님','봉제'],
+    ['김인숙 여사님','봉제'], ['전계진 실장님','포장','admin'],
   ];
   const GROUPS = [
-    ['수의·이불·매트', ['수의','수시이불세트','황금이불매트세트','운구매트']],
-    ['입관부속', ['멧베','입관부속(하대)','입관부속(버선)','입관부속(베개)','입관부속(면모)','입관부속(염습끈)','입관부속(턱받이)']],
-    ['염보·꽃신·고깔', ['염보','목화꽃신','삼베꽃신','고깔']],
-    ['수시복·포·관보', ['용안위생포','목화수시복','목화수시포','바디백','프리원관보','와플관보']],
+    ['자주 만드는 제품', ['수의','수시이불세트','황금이불매트세트','운구매트','용안위생포','염보']],
+    ['수시용품', ['고깔','목화수시복','멧베','목화꽃신','목화수시포']],
+    ['입관부속', ['하대','버선','베개','면모','염습끈','턱받이']],
+    ['운구 · 의전 용품', ['프리원관보','와플관보','바디백','LED위명패']],
     ['제품 외', ['거래처 납품','공장 및 창고 정리정돈','기타(직접입력)']],
   ];
   const NON_PRODUCT = ['거래처 납품','공장 및 창고 정리정돈','기타(직접입력)'];
@@ -187,7 +215,7 @@
     get(k, d){ try{ const v = localStorage.getItem(k); return v ? JSON.parse(v) : d; }catch(e){ return d; } },
     set(k, v){ try{ localStorage.setItem(k, JSON.stringify(v)); }catch(e){} },
   };
-  let me = store.get('me', null);
+  let me = store.get('me', null); if(me && !PEOPLE.some(p => p[0]===me)) me = null;   // 이름 표기가 바뀌면 다시 고르게
   let device = store.get('device', null); if(!device){ device = 'd' + Math.random().toString(36).slice(2,8); store.set('device', device); }
   let day = store.get('day', { date: '', logs: [], counts: [] });  // 서버에서 받은 오늘 기록 사본
   let queue = store.get('queue', []);                                 // 전송 못 한 등록
@@ -279,15 +307,16 @@
     const card = $('nowCard');
     if(cur){ card.className='now'; card.innerHTML = `<div class="lbl">지금 하는 일</div><div class="name">${cur.product}</div><div class="since">${cur.start}부터</div>`; }
     else { card.className='now empty'; card.innerHTML = `<div class="lbl">지금 하는 일</div><div class="name">아직 오늘 일을 누르지 않았어요</div>`; }
-    $('btnChange').textContent = cur ? '다른 일 시작하기' : '오늘 첫 일 시작하기';
+    $('btnChange').textContent = cur ? '다른 일 시작하기' : '시작하기';
     const last = mine[mine.length-1];
     $('btnUndo').hidden = !(last && !last.end && (toMin(nowHM()) - toMin(last.start)) < 15);
     const r = role();
     $('btnCount').hidden = !(r==='count' || r==='admin');
     $('btnAll').hidden = !(r==='admin');
     const list = $('todayList'); list.innerHTML='';
-    if(mine.length){ mine.forEach(l => { const row=document.createElement('div'); row.className='row';
-      row.innerHTML=`<span class="t">${l.start}~${l.end || '지금'}</span><span class="p">${l.product}</span>`; list.appendChild(row); }); }
+    if(mine.length){ mine.forEach((l, i) => { const row=document.createElement('div'); row.className='row';
+      row.innerHTML=`<span class="t">${l.start}~${l.end || '지금'}</span><span class="p">${l.product}</span>`;
+      const e=document.createElement('button'); e.className='e'; e.textContent='수정'; e.onclick=()=>openEdit(i); row.appendChild(e); list.appendChild(row); }); }
     else list.innerHTML = '<div class="row"><span class="t">오늘</span><span class="p" style="color:var(--ink-2)">기록 없음</span></div>';
   }
 
@@ -316,7 +345,7 @@
       day.logs.forEach(l => { if(!l.end){ let e = toMin(start) > DAY_END ? '18:00' : start; if(toMin(e) < toMin(l.start)) e = l.start; l.end = e; } });
       day.logs.push({ date: today(), who: me, product: pending.product, proc: pending.proc, start, end: '' });
     });
-    toast(pending.product + ' 시작했어요'); show('s-home');
+    show('s-home'); flashDone(pending.product + ' 시작', start + ' 부터');
   };
   $('btnUndo').onclick = () => {
     send({ type:'undo', date: today() }, () => {
@@ -324,6 +353,44 @@
     });
     toast('취소했어요');
   };
+
+  // ============ 화면: 시작 시각 수정 / 기록 삭제
+  let edIdx = -1, edMin = 0;
+  function edLimits(){ ensureToday(); const l = day.logs[edIdx]; const prev = day.logs[edIdx-1];
+    const lo = prev ? toMin(prev.start) + 1 : DAY_START;
+    const hi = l.end ? toMin(l.end) : Math.min(toMin(nowHM()), DAY_END);
+    return [lo, Math.max(lo, hi)]; }
+  function openEdit(i){ ensureToday(); edIdx = i; const l = day.logs[i]; if(!l) return;
+    edMin = toMin(l.start); $('edName').textContent = l.product; $('edTime').textContent = l.start; show('s-edit'); }
+  document.querySelectorAll('#s-edit [data-m]').forEach(b => b.onclick = () => {
+    const [lo, hi] = edLimits(); edMin = Math.min(hi, Math.max(lo, edMin + parseInt(b.dataset.m,10)));
+    $('edTime').textContent = toHM(edMin);
+    if(edMin===lo && parseInt(b.dataset.m,10)<0) toast('이전 기록보다 앞으로는 못 갑니다');
+    if(edMin===hi && parseInt(b.dataset.m,10)>0) toast('더 뒤로는 못 갑니다');
+  });
+  $('btnEdSave').onclick = () => {
+    const l = day.logs[edIdx]; if(!l) return; const oldStart = l.start, newStart = toHM(edMin);
+    if(oldStart === newStart){ show('s-home'); return; }
+    send({ type:'edit', date: today(), row: l.row || null, product: l.product, oldStart, newStart }, () => {
+      l.start = newStart; const prev = day.logs[edIdx-1]; if(prev && prev.end === oldStart) prev.end = newStart;
+    });
+    toast('시작 시각을 ' + newStart + '으로 고쳤어요'); show('s-home');
+  };
+  $('btnEdDel').onclick = () => {
+    const l = day.logs[edIdx]; if(!l) return;
+    if(!confirm(l.product + ' ' + l.start + ' 기록을 지울까요?')) return;
+    send({ type:'delete', date: today(), row: l.row || null, product: l.product, oldStart: l.start }, () => {
+      const prev = day.logs[edIdx-1]; if(prev && prev.end === l.start) prev.end = l.end || ''; day.logs.splice(edIdx,1);
+    });
+    toast('지웠어요'); show('s-home');
+  };
+
+  // ============ 눌림 반응: 색 변화 + 짧은 진동
+  document.addEventListener('click', ev => { const b = ev.target.closest('.btn'); if(!b) return;
+    b.classList.add('pressed'); setTimeout(()=>b.classList.remove('pressed'), 180);
+    if(navigator.vibrate) navigator.vibrate(25); });
+  function flashDone(t, s){ $('doneT').textContent = t; $('doneS').textContent = s || ''; $('done').classList.add('on');
+    if(navigator.vibrate) navigator.vibrate([40,60,40]); setTimeout(()=>$('done').classList.remove('on'), 1100); }
 
   // ============ 화면: 완성 수량
   function renderCount(){
