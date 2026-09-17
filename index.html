@@ -77,9 +77,14 @@
   .done .s{font-size:1.2rem;opacity:.85;margin-top:8px}
   .row{grid-template-columns:auto 1fr auto}
   .row .e{background:var(--card);border:2px solid var(--line);border-radius:10px;font:inherit;font-size:.95rem;font-weight:700;padding:6px 10px;color:var(--ink-2)}
-  .tm{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin:14px 0}
-  .tm .btn{font-size:1.25rem;padding:18px 6px;background:var(--card);border:3px solid var(--line);color:var(--ink)}
-  .tm .big{font-size:2.6rem;font-weight:900;text-align:center;grid-column:1/3;font-variant-numeric:tabular-nums;padding:6px 0}
+  .tm-big{font-size:3rem;font-weight:900;text-align:center;font-variant-numeric:tabular-nums;margin-top:10px;color:var(--navy)}
+  .tm-lbl{font-size:1.05rem;font-weight:900;color:var(--ink-2);margin:10px 0 6px}
+  .tm-grid{display:grid;gap:8px;margin-bottom:8px}
+  .tm-grid.h{grid-template-columns:repeat(5,1fr)}
+  .tm-grid.m{grid-template-columns:repeat(6,1fr)}
+  .tm-grid .btn{font-size:1.3rem;padding:16px 0;background:var(--card);border:3px solid var(--line);color:var(--ink);border-radius:14px}
+  .tm-grid .btn.sel{background:var(--navy);color:var(--navy-ink);border-color:var(--navy)}
+  .tm-grid .btn.off{opacity:.3}
   .toast{position:fixed;left:50%;bottom:28px;transform:translateX(-50%);background:var(--ink);color:var(--paper);font-size:1.15rem;font-weight:700;padding:14px 22px;border-radius:14px;opacity:0;transition:opacity .2s;pointer-events:none;max-width:92vw;text-align:center;z-index:9}
   .toast.show{opacity:1}
   @media (prefers-reduced-motion: reduce){ .btn:active{transform:none} .toast{transition:none} }
@@ -103,7 +108,6 @@
     <div class="now" id="nowCard"></div>
     <button class="btn btn-main" id="btnChange">다른 일 시작하기</button>
     <p class="hint">일이 바뀔 때마다 위 버튼을 한 번만 눌러 주세요. 안 누른 시간은 계산에서 빠집니다.</p>
-    <button class="btn btn-stop" id="btnUndo" hidden>방금 누른 것 취소하기</button>
     <button class="btn btn-sub" id="btnCount" hidden>포장 끝난 개수 적기</button>
     <button class="btn btn-sub" id="btnAll" hidden>오늘 전체 기록 보기</button>
     <div class="list" id="todayList"></div>
@@ -161,15 +165,13 @@
   <section class="screen" id="s-edit">
     <div class="ask">
       <div class="big" id="edName"></div>
-      <div class="sm">시작 시각을 맞춰 주세요</div>
+      <div class="sm">실제로 시작한 시각을 눌러 주세요</div>
+      <div class="tm-big" id="edTime">00:00</div>
     </div>
-    <div class="tm">
-      <div class="big" id="edTime">00:00</div>
-      <button class="btn" data-m="-30">30분 앞으로</button>
-      <button class="btn" data-m="30">30분 뒤로</button>
-      <button class="btn" data-m="-5">5분 앞으로</button>
-      <button class="btn" data-m="5">5분 뒤로</button>
-    </div>
+    <div class="tm-lbl">시</div>
+    <div class="tm-grid h" id="edHours"></div>
+    <div class="tm-lbl">분</div>
+    <div class="tm-grid m" id="edMins"></div>
     <button class="btn btn-go" id="btnEdSave">이 시각으로 저장</button>
     <button class="btn btn-stop" id="btnEdDel">이 기록 지우기</button>
     <button class="btn btn-back" data-go="s-home">돌아가기</button>
@@ -190,7 +192,7 @@
 (function(){
   // ============ 설정: 구글 시트 웹 앱 주소 (배포 후 나온 /exec 주소를 따옴표 안에 붙여넣기)
   const SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbz_bdMhHIwyGthi9aaUJ4Ba1nd5SZNKKh5jDWjJnwQDE4sVHRTD6Vqpx-kX-xqLg-Cj/exec';
-  const APP_VERSION = '1.1.1';
+  const APP_VERSION = '1.2.0';
 
   // ============ 기준 데이터
   const PEOPLE = [
@@ -308,8 +310,6 @@
     if(cur){ card.className='now'; card.innerHTML = `<div class="lbl">지금 하는 일</div><div class="name">${cur.product}</div><div class="since">${cur.start}부터</div>`; }
     else { card.className='now empty'; card.innerHTML = `<div class="lbl">지금 하는 일</div><div class="name">아직 오늘 일을 누르지 않았어요</div>`; }
     $('btnChange').textContent = cur ? '다른 일 시작하기' : '시작하기';
-    const last = mine[mine.length-1];
-    $('btnUndo').hidden = !(last && !last.end && (toMin(nowHM()) - toMin(last.start)) < 15);
     const r = role();
     $('btnCount').hidden = !(r==='count' || r==='admin');
     $('btnAll').hidden = !(r==='admin');
@@ -347,29 +347,30 @@
     });
     show('s-home'); flashDone(pending.product + ' 시작', start + ' 부터');
   };
-  $('btnUndo').onclick = () => {
-    send({ type:'undo', date: today() }, () => {
-      day.logs.pop(); const prev = day.logs[day.logs.length-1]; if(prev) prev.end = '';
-    });
-    toast('취소했어요');
-  };
-
-  // ============ 화면: 시작 시각 수정 / 기록 삭제
-  let edIdx = -1, edMin = 0;
+  // ============ 화면: 시작 시각 수정 / 기록 삭제 (시·분 버튼으로 직접 선택)
+  let edIdx = -1, edH = 8, edM = 30;
+  const HOURS = [8,9,10,11,12,13,14,15,16,17], MINS = [0,5,10,15,20,25,30,35,40,45,50,55];
   function edLimits(){ ensureToday(); const l = day.logs[edIdx]; const prev = day.logs[edIdx-1];
     const lo = prev ? toMin(prev.start) + 1 : DAY_START;
     const hi = l.end ? toMin(l.end) : Math.min(toMin(nowHM()), DAY_END);
     return [lo, Math.max(lo, hi)]; }
+  function edRender(){
+    const [lo, hi] = edLimits(); const cur = edH*60 + edM;
+    $('edTime').textContent = toHM(cur);
+    const hg = $('edHours'); hg.innerHTML='';
+    HOURS.forEach(h => { const b=document.createElement('button'); b.className='btn'+(h===edH?' sel':''); b.textContent=pad(h);
+      const possible = (h*60+55) >= lo && (h*60) <= hi; if(!possible) b.classList.add('off');
+      b.onclick=()=>{ if(!possible){ toast('그 시각은 고를 수 없어요'); return; } edH=h; edClamp(); edRender(); }; hg.appendChild(b); });
+    const mg = $('edMins'); mg.innerHTML='';
+    MINS.forEach(m => { const b=document.createElement('button'); b.className='btn'+(m===edM?' sel':''); b.textContent=pad(m);
+      const v = edH*60+m; const possible = v >= lo && v <= hi; if(!possible) b.classList.add('off');
+      b.onclick=()=>{ if(!possible){ toast('그 시각은 고를 수 없어요'); return; } edM=m; edRender(); }; mg.appendChild(b); });
+  }
+  function edClamp(){ const [lo, hi] = edLimits(); let v = edH*60+edM; if(v<lo) v=lo; if(v>hi) v=hi; edH=Math.floor(v/60); edM=Math.floor((v%60)/5)*5; }
   function openEdit(i){ ensureToday(); edIdx = i; const l = day.logs[i]; if(!l) return;
-    edMin = toMin(l.start); $('edName').textContent = l.product; $('edTime').textContent = l.start; show('s-edit'); }
-  document.querySelectorAll('#s-edit [data-m]').forEach(b => b.onclick = () => {
-    const [lo, hi] = edLimits(); edMin = Math.min(hi, Math.max(lo, edMin + parseInt(b.dataset.m,10)));
-    $('edTime').textContent = toHM(edMin);
-    if(edMin===lo && parseInt(b.dataset.m,10)<0) toast('이전 기록보다 앞으로는 못 갑니다');
-    if(edMin===hi && parseInt(b.dataset.m,10)>0) toast('더 뒤로는 못 갑니다');
-  });
+    const v = toMin(l.start); edH = Math.floor(v/60); edM = Math.floor((v%60)/5)*5; $('edName').textContent = l.product; edRender(); show('s-edit'); }
   $('btnEdSave').onclick = () => {
-    const l = day.logs[edIdx]; if(!l) return; const oldStart = l.start, newStart = toHM(edMin);
+    const l = day.logs[edIdx]; if(!l) return; const oldStart = l.start, newStart = toHM(edH*60+edM);
     if(oldStart === newStart){ show('s-home'); return; }
     send({ type:'edit', date: today(), row: l.row || null, product: l.product, oldStart, newStart }, () => {
       l.start = newStart; const prev = day.logs[edIdx-1]; if(prev && prev.end === oldStart) prev.end = newStart;

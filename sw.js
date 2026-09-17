@@ -1,5 +1,5 @@
 // 앱 껍데기(화면)만 폰에 저장해 두어 인터넷이 잠깐 끊겨도 열리게 합니다. 기록 자체는 구글 시트로 갑니다.
-const CACHE = 'yewon-work-v3';
+const CACHE = 'yewon-work-v4';
 const SHELL = ['./', './index.html', './manifest.webmanifest', './icon-192.png', './icon-512.png', './icon-maskable-512.png'];
 self.addEventListener('install', e => { e.waitUntil(caches.open(CACHE).then(c => c.addAll(SHELL)).then(() => self.skipWaiting())); });
 self.addEventListener('activate', e => { e.waitUntil(caches.keys().then(ks => Promise.all(ks.filter(k => k !== CACHE).map(k => caches.delete(k)))).then(() => self.clients.claim())); });
