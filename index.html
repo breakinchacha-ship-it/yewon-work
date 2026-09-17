@@ -162,7 +162,7 @@
 (function(){
   // ============ 설정: 구글 시트 웹 앱 주소 (배포 후 나온 /exec 주소를 따옴표 안에 붙여넣기)
   const SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbz_bdMhHIwyGthi9aaUJ4Ba1nd5SZNKKh5jDWjJnwQDE4sVHRTD6Vqpx-kX-xqLg-Cj/exec';
-  const APP_VERSION = '1.0.0';
+  const APP_VERSION = '1.0.1';
 
   // ============ 기준 데이터
   const PEOPLE = [
@@ -227,8 +227,15 @@
   }
   async function apiPost(obj){
     if(!configured()) throw new Error('not configured');
-    const r = await fetch(SCRIPT_URL, { method:'POST', redirect:'follow', body: JSON.stringify({ ...obj, who: me, device, all: role()==='admin' }) });
-    return r.json();
+    const body = JSON.stringify({ ...obj, who: me, device, all: role()==='admin' });
+    try{
+      const r = await fetch(SCRIPT_URL, { method:'POST', redirect:'follow', body });
+      return await r.json();
+    }catch(e){
+      // 일부 폰 브라우저가 응답 읽기를 막는 경우: 보내기만 하고(no-cors) 결과는 다시 읽어온다
+      await fetch(SCRIPT_URL, { method:'POST', mode:'no-cors', redirect:'follow', body });
+      return await apiGet(role()==='admin');
+    }
   }
   // 대기열 전송
   async function flush(){
@@ -244,7 +251,7 @@
     if(!configured()){ setSync('시험 모드: 이 폰에만 저장', true); return; }
     if(queue.length){ await flush(); return; }
     try{ applyServer(await apiGet(role()==='admin')); setSync('저장됨 ✓'); }
-    catch(e){ setSync('인터넷 연결 확인 중… (기록은 폰에 남아 있어요)', true); }
+    catch(e){ setSync('연결 안 됨: ' + (e && e.message ? e.message : e) + ' (기록은 폰에 남아 있어요)', true); }
   }
   // 등록 보내기: 먼저 화면에 반영하고, 서버로 보내고, 실패하면 대기열
   async function send(obj, localApply){
