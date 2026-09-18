@@ -187,7 +187,7 @@
 (function(){
   // ============ 설정: 구글 시트 웹 앱 주소 (배포 후 나온 /exec 주소를 따옴표 안에 붙여넣기)
   const SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbz_bdMhHIwyGthi9aaUJ4Ba1nd5SZNKKh5jDWjJnwQDE4sVHRTD6Vqpx-kX-xqLg-Cj/exec';
-  const APP_VERSION = '1.3.4';
+  const APP_VERSION = '1.4.1';
 
   // ============ 기준 데이터
   const PEOPLE = [
@@ -206,7 +206,14 @@
   ];
   const NON_PRODUCT = ['공장 및 창고 정리정돈','기타(직접입력)'];
   const PRODUCTS = GROUPS.flatMap(g => g[1]).filter(p => !NON_PRODUCT.includes(p));
-  const DAY_START = 8*60+30, DAY_END = 18*60;
+  const DAY_START = 8*60+30;
+  // 일과 종료: 평일 17:55, 금요일 17:45 (그 뒤는 뒷정리·퇴근이라 기록하지 않음)
+  const dayEnd = () => new Date().getDay() === 5 ? 17*60+45 : 17*60+55;
+  const BREAKS = [[11*60, 11*60+15], [13*60, 14*60], [16*60, 16*60+15]];   // 휴게: 시작~끝(분)
+  // 휴게시간 안에서 시작을 누르면 휴게 끝부터, 그 전 일의 종료는 휴게 시작으로 기록 (예: 14:00 등록 → 전 일 13:00 종료)
+  const snapStart = m => { for(const [a,b] of BREAKS) if(m>=a && m<b) m=b; return Math.max(m, DAY_START); };
+  const snapEnd   = m => { for(const [a,b] of BREAKS) if(m>a && m<=b) m=a; return Math.min(m, dayEnd()); };
+  const linked = (prevEnd, curStart) => prevEnd === curStart || prevEnd === toHM(snapEnd(toMin(curStart)));
 
   // ============ 저장소 (폰 안: 이름·오늘 기록 사본·전송 대기)
   const store = {
@@ -230,12 +237,12 @@
   function toast(t, ms){ const el=$('toast'); el.textContent=t; el.classList.add('show'); clearTimeout(el._t); el._t=setTimeout(()=>el.classList.remove('show'), ms||1800); }
   const person = () => PEOPLE.find(p => p[0] === me);
   const role = () => { const p = person(); return p ? (p[2] || '') : ''; };
-  const startHM = () => { const m = toMin(nowHM()); return toHM(m < DAY_START ? DAY_START : m); };
+  const startHM = () => toHM(snapStart(toMin(nowHM())));
 
   function ensureToday(){ if(day.date !== today()){ day = { date: today(), logs: [], counts: [] }; store.set('day', day); } }
   // 화면용 규칙: 18:00 지났으면 열린 기록은 18:00으로 표시
-  function viewLogs(){ ensureToday(); const late = toMin(nowHM()) > DAY_END;
-    return day.logs.map(l => (!l.end && late) ? { ...l, end: '18:00' } : l); }
+  function viewLogs(){ ensureToday(); const late = toMin(nowHM()) > dayEnd();
+    return day.logs.map(l => (!l.end && late) ? { ...l, end: toHM(dayEnd()) } : l); }
 
   // ============ 서버 통신 (구글 시트)
   const configured = () => SCRIPT_URL && !SCRIPT_URL.includes('PASTE_');
@@ -337,9 +344,10 @@
   }
   $('btnEtcNext').onclick = () => { const t=$('etcText').value.trim(); if(!t){ toast('무슨 일인지 적어 주세요'); return; } prepare('기타: '+t); };
   $('btnStart').onclick = () => {
+    if(toMin(nowHM()) >= dayEnd()){ toast('오늘 일과(' + toHM(dayEnd()) + ')가 끝나서 더 등록할 수 없어요', 2600); show('s-home'); return; }
     const start = startHM(); const obj = { type:'start', date: today(), product: pending.product, proc: pending.proc, start };
     send(obj, () => {
-      day.logs.forEach(l => { if(!l.end){ let e = toMin(start) > DAY_END ? '18:00' : start; if(toMin(e) < toMin(l.start)) e = l.start; l.end = e; } });
+      day.logs.forEach(l => { if(!l.end){ let e = toHM(snapEnd(toMin(start))); if(toMin(e) < toMin(l.start)) e = l.start; l.end = e; } });
       day.logs.push({ date: today(), who: me, product: pending.product, proc: pending.proc, start, end: '' });
     });
     show('s-home'); flashDone(pending.product + ' 시작', start + ' 부터');
@@ -347,7 +355,7 @@
   // ============ 끝내기 (사무직이 현장 일을 마치고 돌아갈 때)
   $('btnStop').onclick = () => {
     ensureToday(); const cur = day.logs.find(l => !l.end); if(!cur) return;
-    let at = nowHM(); if(toMin(at) > DAY_END) at = '18:00'; if(toMin(at) < toMin(cur.start)) at = cur.start;
+    let at = toHM(snapEnd(toMin(nowHM()))); if(toMin(at) < toMin(cur.start)) at = cur.start;
     const prod = cur.product;
     send({ type:'stop', date: today(), at }, () => { cur.end = at; });
     flashDone(prod + ' 끝', at + ' 까지'); show('s-home');
@@ -357,7 +365,7 @@
   let edIdx = -1, edDigits = '';
   function edLimits(){ ensureToday(); const l = day.logs[edIdx]; const prev = day.logs[edIdx-1];
     const lo = prev ? toMin(prev.start) + 1 : DAY_START;
-    const hi = l.end ? toMin(l.end) : Math.min(toMin(nowHM()), DAY_END);
+    const hi = l.end ? toMin(l.end) : Math.min(toMin(nowHM()), dayEnd());
     return [lo, Math.max(lo, hi)]; }
   // 입력한 숫자 → 분. 3자리(830)면 8:30, 4자리(0830)면 08:30. 아니면 null
   function edValue(){ let d = edDigits; if(d.length===3) d = '0'+d; if(d.length!==4) return null;
@@ -377,21 +385,21 @@
   $('btnEdSave').onclick = () => {
     const l = day.logs[edIdx]; if(!l) return; const v = edValue();
     if(v===null){ toast('시각을 네 자리로 눌러 주세요 (예: 0830)'); return; }
-    const [lo, hi] = edLimits();
-    if(v < lo){ toast(edIdx>0 ? '이전 기록 시작(' + toHM(lo-1) + ')보다 앞으로는 안 돼요' : '08:30보다 앞으로는 안 돼요'); return; }
-    if(v > hi){ toast((day.logs[edIdx].end ? '이 기록 끝(' : '지금(') + toHM(hi) + ')보다 뒤로는 안 돼요'); return; }
-    const oldStart = l.start, newStart = toHM(v);
+    const [lo, hi] = edLimits(); const vs = snapStart(v);
+    if(vs < lo){ toast(edIdx>0 ? '이전 기록 시작(' + toHM(lo-1) + ')보다 앞으로는 안 돼요' : '08:30보다 앞으로는 안 돼요'); return; }
+    if(vs > hi){ toast((day.logs[edIdx].end ? '이 기록 끝(' : '지금(') + toHM(hi) + ')보다 뒤로는 안 돼요'); return; }
+    const oldStart = l.start, newStart = toHM(vs), prevEnd = toHM(snapEnd(vs));
     if(oldStart === newStart){ show('s-home'); return; }
     send({ type:'edit', date: today(), row: l.row || null, product: l.product, oldStart, newStart }, () => {
-      l.start = newStart; const prev = day.logs[edIdx-1]; if(prev && prev.end === oldStart) prev.end = newStart;
+      l.start = newStart; const prev = day.logs[edIdx-1]; if(prev && linked(prev.end, oldStart)) prev.end = prevEnd;
     });
-    toast('시작 시각을 ' + newStart + '으로 고쳤어요'); show('s-home');
+    toast('시작 시각을 ' + newStart + '으로 고쳤어요' + (vs !== v ? ' (휴게시간이라 ' + toHM(v) + '→' + newStart + ')' : ''), 2600); show('s-home');
   };
   $('btnEdDel').onclick = () => {
     const l = day.logs[edIdx]; if(!l) return;
     if(!confirm(l.product + ' ' + l.start + ' 기록을 지울까요?')) return;
     send({ type:'delete', date: today(), row: l.row || null, product: l.product, oldStart: l.start }, () => {
-      const prev = day.logs[edIdx-1]; if(prev && prev.end === l.start) prev.end = l.end || ''; day.logs.splice(edIdx,1);
+      const prev = day.logs[edIdx-1]; if(prev && linked(prev.end, l.start)) prev.end = l.end || ''; day.logs.splice(edIdx,1);
     });
     toast('지웠어요'); show('s-home');
   };
