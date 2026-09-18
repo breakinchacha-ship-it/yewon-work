@@ -81,6 +81,11 @@
   .pad{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin:6px 0 14px}
   .pad .btn{font-size:1.9rem;padding:18px 0;min-height:76px;background:var(--card);border:3px solid var(--line);color:var(--ink);border-radius:16px}
   .pad .btn.fn{font-size:1.15rem;color:var(--ink-2)}
+  .chk{display:flex;align-items:center;gap:14px;justify-content:flex-start;text-align:left}
+  .chk .box{width:34px;height:34px;border:3px solid var(--ink-2);border-radius:8px;flex:none;background:var(--card);position:relative}
+  .chk.on{border-color:var(--navy);background:#E8EEF6}
+  .chk.on .box{background:var(--navy);border-color:var(--navy)}
+  .chk.on .box::after{content:'✓';color:#fff;position:absolute;left:0;right:0;top:-3px;text-align:center;font-size:1.5rem;font-weight:900}
   .toast{position:fixed;left:50%;bottom:28px;transform:translateX(-50%);background:var(--ink);color:var(--paper);font-size:1.15rem;font-weight:700;padding:14px 22px;border-radius:14px;opacity:0;transition:opacity .2s;pointer-events:none;max-width:92vw;text-align:center;z-index:9}
   .toast.show{opacity:1}
   @media (prefers-reduced-motion: reduce){ .btn:active{transform:none} .toast{transition:none} }
@@ -122,8 +127,28 @@
       <div class="big" id="cfName"></div>
       <div class="sm" id="cfTime"></div>
     </div>
+    <button class="btn btn-sub chk" id="cfCut" hidden><span class="box"></span>연단 및 재단 작업</button>
+    <div id="cfSheets" hidden>
+      <div class="ask"><div class="sm">몇 장을 연단할 예정이신가요?</div><div class="tm-big" id="cfSheetsVal">__ 장</div></div>
+      <div class="pad" id="cfPad"></div>
+    </div>
     <button class="btn btn-go" id="btnStart">네, 지금 시작</button>
     <button class="btn btn-back" data-go="s-pick">아니오, 다시 고르기</button>
+  </section>
+
+  <section class="screen" id="s-sheets">
+    <div class="ask">
+      <div class="big" id="shName"></div>
+      <div class="sm" id="shQ">시작할 때 적은 장수가 맞으신가요?</div>
+      <div class="tm-big" id="shVal">__ 장</div>
+    </div>
+    <button class="btn btn-go" id="btnShYes">예, 맞아요</button>
+    <button class="btn btn-main" id="btnShNo">아니오, 고칠게요</button>
+    <div id="shEdit" hidden>
+      <div class="pad" id="shPad"></div>
+      <button class="btn btn-go" id="btnShSave">이 장수로 저장</button>
+    </div>
+    <button class="btn btn-back" id="btnShBack">돌아가기</button>
   </section>
 
   <section class="screen" id="s-etc">
@@ -135,7 +160,7 @@
   </section>
 
   <section class="screen" id="s-count">
-    <h1>오늘 포장 끝난 개수</h1>
+    <h1 id="countTitle">오늘 포장 끝난 개수</h1>
     <p class="hint">제품을 누르고 개수를 적어 주세요.</p>
     <div id="countGrid"></div>
     <div class="list" id="countList"></div>
@@ -144,7 +169,7 @@
   <section class="screen" id="s-count2">
     <div class="ask">
       <div class="big" id="ctName"></div>
-      <div class="sm">오늘 포장 끝난 개수</div>
+      <div class="sm" id="ctKind">오늘 포장 끝난 개수</div>
     </div>
     <div class="qty">
       <button class="btn" id="qMinus">－</button>
@@ -167,6 +192,7 @@
     </div>
     <div class="pad" id="edPad"></div>
     <button class="btn btn-go" id="btnEdSave">이 시각으로 저장</button>
+    <button class="btn btn-sub" id="btnEdSheets" hidden>연단 장수 고치기</button>
     <button class="btn btn-stop" id="btnEdDel">이 기록 지우기</button>
     <button class="btn btn-back" data-go="s-home">돌아가기</button>
   </section>
@@ -187,21 +213,23 @@
 (function(){
   // ============ 설정: 구글 시트 웹 앱 주소 (배포 후 나온 /exec 주소를 따옴표 안에 붙여넣기)
   const SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbz_bdMhHIwyGthi9aaUJ4Ba1nd5SZNKKh5jDWjJnwQDE4sVHRTD6Vqpx-kX-xqLg-Cj/exec';
-  const APP_VERSION = '1.4.1';
+  const APP_VERSION = '1.6.1';
 
   // ============ 기준 데이터
+  // [이름, 역할]  역할: count=포장 개수 입력, office=끝내기 버튼, admin=전체 기록, cut=연단·재단 체크
   const PEOPLE = [
-    ['김명숙 차장님','포장','count'], ['김옥순 과장님','봉제'], ['김순미 과장님','봉제','office'],
-    ['김민호 주임님','봉제','office'], ['남중일 반장님','재단'], ['박인숙 여사님','봉제'],
-    ['김명숙 여사님','봉제'], ['김근영 여사님','봉제'], ['신미숙 여사님','봉제'],
-    ['김인숙 여사님','봉제'], ['전계진 실장님','포장','admin'],
+    ['김명숙 차장님','count'], ['김옥순 과장님',''], ['김순미 과장님','office'],
+    ['김민호 주임님','office'], ['남중일 반장님','cut'], ['박인숙 여사님',''],
+    ['김명숙 여사님',''], ['김근영 여사님',''], ['신미숙 여사님',''],
+    ['김인숙 여사님',''], ['전계진 실장님','admin'],
   ];
+  const CUT_TAG = ' (연단·재단)';
   const GROUPS = [
     ['자주 만드는 제품', ['수의','수시이불세트','황금이불','위생매트','운구매트','용안위생포','염보']],
     ['수시용품', ['고깔','목화수시복','멧베','목화꽃신','목화수시포']],
     ['입관부속', ['입관부속','하대','버선','베개','면모','염습끈','턱받이']],
     ['운구 · 의전 용품', ['프리원관보','와플관보','바디백','LED위명패']],
-    ['기타', ['우라납바','우라벨크로','매트납바']],
+    ['기타', ['우라납바','우라벨크로','매트납바','끈 추리기','우라접기']],
     ['제품 외', ['공장 및 창고 정리정돈','기타(직접입력)']],
   ];
   const NON_PRODUCT = ['공장 및 창고 정리정돈','기타(직접입력)'];
@@ -236,7 +264,7 @@
   function show(id){ document.querySelectorAll('.screen').forEach(s=>s.classList.remove('on')); $(id).classList.add('on'); window.scrollTo(0,0); }
   function toast(t, ms){ const el=$('toast'); el.textContent=t; el.classList.add('show'); clearTimeout(el._t); el._t=setTimeout(()=>el.classList.remove('show'), ms||1800); }
   const person = () => PEOPLE.find(p => p[0] === me);
-  const role = () => { const p = person(); return p ? (p[2] || '') : ''; };
+  const role = () => { const p = person(); return p ? (p[1] || '') : ''; };
   const startHM = () => toHM(snapStart(toMin(nowHM())));
 
   function ensureToday(){ if(day.date !== today()){ day = { date: today(), logs: [], counts: [] }; store.set('day', day); } }
@@ -310,7 +338,8 @@
     const mine = viewLogs();
     const cur = mine.find(l => !l.end);
     const card = $('nowCard');
-    if(cur){ card.className='now'; card.innerHTML = `<div class="lbl">지금 하는 일</div><div class="name">${cur.product}</div><div class="since">${cur.start}부터</div>`; }
+    const tag = l => l.sheets ? ' ' + l.sheets + '장' : '';
+    if(cur){ card.className='now'; card.innerHTML = `<div class="lbl">지금 하는 일</div><div class="name">${cur.product}${tag(cur)}</div><div class="since">${cur.start}부터</div>`; }
     else { card.className='now empty'; card.innerHTML = `<div class="lbl">지금 하는 일</div><div class="name">아직 오늘 일을 누르지 않았어요</div>`; }
     $('btnChange').textContent = cur ? '다른 일 시작하기' : '시작하기';
     const r = role();
@@ -319,7 +348,7 @@
     $('btnAll').hidden = !(r==='admin');
     const list = $('todayList'); list.innerHTML='';
     if(mine.length){ mine.forEach((l, i) => { const row=document.createElement('div'); row.className='row';
-      row.innerHTML=`<span class="t">${l.start}~${l.end || '지금'}</span><span class="p">${l.product}</span>`;
+      row.innerHTML=`<span class="t">${l.start}~${l.end || '지금'}</span><span class="p">${l.product}${tag(l)}</span>`;
       const e=document.createElement('button'); e.className='e'; e.textContent='수정'; e.onclick=()=>openEdit(i); row.appendChild(e); list.appendChild(row); }); }
     else list.innerHTML = '<div class="row"><span class="t">오늘</span><span class="p" style="color:var(--ink-2)">기록 없음</span></div>';
   }
@@ -336,22 +365,60 @@
       g.appendChild(grid);
     });
   }
+  // 숫자판 (시각 수정·장수 입력 공용)
+  function makePad(el, onKey){ el.innerHTML='';
+    ['1','2','3','4','5','6','7','8','9','지우기','0','⌫'].forEach(k => { const b=document.createElement('button'); b.className='btn'+(/\d/.test(k)?'':' fn'); b.textContent=k; b.onclick=()=>onKey(k); el.appendChild(b); }); }
+  const pressDigits = (d, k, max) => k==='⌫' ? d.slice(0,-1) : k==='지우기' ? '' : (d.length>=max ? '' : d) + k;
+
+  let cfDigits = '';
   function prepare(product){
-    const p = person(); pending = { product, proc: p ? p[1] : '' };
+    pending = { product, cut: false, sheets: 0 };
     $('cfName').textContent = product;
     $('cfTime').textContent = startHM() + ' 부터로 기록됩니다';
+    $('cfCut').hidden = role()!=='cut' || NON_PRODUCT.includes(product);   // 연단·재단 체크는 반장님 화면에만
+    $('cfCut').classList.remove('on'); $('cfSheets').hidden = true; cfDigits = ''; $('cfSheetsVal').textContent = '__ 장';
     show('s-confirm');
   }
+  $('cfCut').onclick = () => { pending.cut = !pending.cut; $('cfCut').classList.toggle('on', pending.cut); $('cfSheets').hidden = !pending.cut;
+    if(pending.cut){ cfDigits=''; $('cfSheetsVal').textContent='__ 장'; setTimeout(()=>$('cfSheets').scrollIntoView({block:'nearest'}),50); } };
+  makePad($('cfPad'), k => { cfDigits = pressDigits(cfDigits, k, 4); $('cfSheetsVal').textContent = (cfDigits || '__') + ' 장'; });
   $('btnEtcNext').onclick = () => { const t=$('etcText').value.trim(); if(!t){ toast('무슨 일인지 적어 주세요'); return; } prepare('기타: '+t); };
+
   $('btnStart').onclick = () => {
     if(toMin(nowHM()) >= dayEnd()){ toast('오늘 일과(' + toHM(dayEnd()) + ')가 끝나서 더 등록할 수 없어요', 2600); show('s-home'); return; }
-    const start = startHM(); const obj = { type:'start', date: today(), product: pending.product, proc: pending.proc, start };
-    send(obj, () => {
-      day.logs.forEach(l => { if(!l.end){ let e = toHM(snapEnd(toMin(start))); if(toMin(e) < toMin(l.start)) e = l.start; l.end = e; } });
-      day.logs.push({ date: today(), who: me, product: pending.product, proc: pending.proc, start, end: '' });
-    });
-    show('s-home'); flashDone(pending.product + ' 시작', start + ' 부터');
+    if(pending.cut){ const n = parseInt(cfDigits,10)||0; if(n<=0){ toast('몇 장 연단할지 숫자를 눌러 주세요'); return; } pending.sheets = n; }
+    const product = pending.cut ? pending.product + CUT_TAG : pending.product;
+    ensureToday(); const cur = day.logs.find(l => !l.end);
+    if(cur && cur.sheets){ openSheets('start', cur, product); return; }   // 직전 일이 연단·재단이면 장수 확인부터
+    doStart(product, pending.sheets, null);
   };
+  function doStart(product, sheets, prevSheets){
+    const start = startHM(); const obj = { type:'start', date: today(), product, sheets: sheets || '', start, prevSheets: prevSheets == null ? null : prevSheets };
+    send(obj, () => {
+      day.logs.forEach(l => { if(!l.end){ let e = toHM(snapEnd(toMin(start))); if(toMin(e) < toMin(l.start)) e = l.start; l.end = e; if(prevSheets != null) l.sheets = prevSheets; } });
+      day.logs.push({ date: today(), who: me, product, sheets: sheets || '', start, end: '' });
+    });
+    show('s-home'); flashDone(product + (sheets ? ' ' + sheets + '장' : '') + ' 시작', start + ' 부터');
+  }
+
+  // ============ 연단 장수 확인 / 고치기
+  let shMode = null, shLog = null, shNext = null, shDigits = '';
+  function openSheets(mode, log, nextProduct){
+    shMode = mode; shLog = log; shNext = nextProduct; shDigits = '';
+    $('shName').textContent = log.product; $('shVal').textContent = log.sheets + ' 장';
+    $('shQ').textContent = mode==='start' ? '시작할 때 적은 장수가 맞으신가요?' : '연단 장수를 고칠까요?';
+    $('shEdit').hidden = true; $('btnShYes').hidden = false; $('btnShNo').hidden = false; show('s-sheets');
+  }
+  $('btnShYes').onclick = () => { if(shMode==='start') doStart(shNext, pending.sheets, null); else show('s-home'); };
+  $('btnShNo').onclick = () => { $('shEdit').hidden = false; $('btnShYes').hidden = true; $('btnShNo').hidden = true; shDigits=''; $('shVal').textContent = '__ 장'; };
+  makePad($('shPad'), k => { shDigits = pressDigits(shDigits, k, 4); $('shVal').textContent = (shDigits || '__') + ' 장'; });
+  $('btnShSave').onclick = () => {
+    const n = parseInt(shDigits,10)||0; if(n<=0){ toast('장수를 눌러 주세요'); return; }
+    if(shMode==='start'){ doStart(shNext, pending.sheets, n); return; }
+    const l = shLog; send({ type:'sheets', date: today(), row: l.row || null, product: l.product, oldStart: l.start, sheets: n }, () => { l.sheets = n; });
+    toast('연단 장수를 ' + n + '장으로 고쳤어요'); show('s-home');
+  };
+  $('btnShBack').onclick = () => show(shMode==='start' ? 's-confirm' : 's-home');
   // ============ 끝내기 (사무직이 현장 일을 마치고 돌아갈 때)
   $('btnStop').onclick = () => {
     ensureToday(); const cur = day.logs.find(l => !l.end); if(!cur) return;
@@ -378,10 +445,11 @@
     else { if(edDigits.length>=4) edDigits=''; edDigits += k; }
     edRender();
   }
-  (function buildPad(){ const pad=$('edPad'); pad.innerHTML='';
-    ['1','2','3','4','5','6','7','8','9','지우기','0','⌫'].forEach(k => { const b=document.createElement('button'); b.className='btn'+(/\d/.test(k)?'':' fn'); b.textContent=k; b.onclick=()=>edPress(k); pad.appendChild(b); }); })();
+  makePad($('edPad'), edPress);
   function openEdit(i){ ensureToday(); edIdx = i; const l = day.logs[i]; if(!l) return;
-    edDigits = ''; $('edName').textContent = l.product + '  (지금 ' + l.start + ')'; edRender(); show('s-edit'); }
+    edDigits = ''; $('edName').textContent = l.product + '  (지금 ' + l.start + ')'; $('btnEdSheets').hidden = !l.sheets;
+    $('btnEdSheets').textContent = '연단 장수 고치기 (지금 ' + l.sheets + '장)'; edRender(); show('s-edit'); }
+  $('btnEdSheets').onclick = () => { const l = day.logs[edIdx]; if(l) openSheets('edit', l); };
   $('btnEdSave').onclick = () => {
     const l = day.logs[edIdx]; if(!l) return; const v = edValue();
     if(v===null){ toast('시각을 네 자리로 눌러 주세요 (예: 0830)'); return; }
@@ -412,22 +480,25 @@
     if(navigator.vibrate) navigator.vibrate([40,60,40]); setTimeout(()=>$('done').classList.remove('on'), 1100); }
 
   // ============ 화면: 완성 수량
+  const countKind = () => '포장';
+  const kindOf = c => c.kind || '포장';
   function renderCount(){
+    const kind = countKind(); $('countTitle').textContent = '오늘 ' + kind + ' 끝난 개수'; $('ctKind').textContent = '오늘 ' + kind + ' 끝난 개수';
     const g=$('countGrid'); g.innerHTML=''; const grid=document.createElement('div'); grid.className='grid';
     PRODUCTS.forEach(it => { const b=document.createElement('button'); b.className='btn'; b.textContent=it;
-      b.onclick=()=>{ countProduct=it; $('ctName').textContent=it; const ex = day.counts.find(c=>c.product===it); $('qty').value = ex? ex.qty : 0; show('s-count2'); }; grid.appendChild(b); });
+      b.onclick=()=>{ countProduct=it; $('ctName').textContent=it; const ex = day.counts.find(c=>c.product===it && kindOf(c)===kind); $('qty').value = ex? ex.qty : 0; show('s-count2'); }; grid.appendChild(b); });
     g.appendChild(grid);
-    const list=$('countList'); list.innerHTML='';
-    if(day.counts.length){ day.counts.forEach(c=>{ const r=document.createElement('div'); r.className='row'; r.innerHTML=`<span class="t">${c.qty}개</span><span class="p">${c.product}<small>${c.who}</small></span>`; list.appendChild(r); }); }
+    const list=$('countList'); list.innerHTML=''; const mine = day.counts.filter(c => kindOf(c)===kind);
+    if(mine.length){ mine.forEach(c=>{ const r=document.createElement('div'); r.className='row'; r.innerHTML=`<span class="t">${c.qty}개</span><span class="p">${c.product}<small>${c.who}</small></span>`; list.appendChild(r); }); }
     else list.innerHTML='<div class="row"><span class="t">오늘</span><span class="p" style="color:var(--ink-2)">아직 적은 개수 없음</span></div>';
   }
   const bump = d => { const i=$('qty'); i.value = Math.max(0, (parseInt(i.value,10)||0) + d); };
   $('qMinus').onclick=()=>bump(-1); $('qPlus').onclick=()=>bump(1);
   document.querySelectorAll('.qty10 .btn').forEach(b => b.onclick=()=>bump(parseInt(b.dataset.d,10)));
   $('btnSaveCount').onclick = () => {
-    const q = Math.max(0, parseInt($('qty').value,10)||0); const prod = countProduct;
-    send({ type:'count', date: today(), product: prod, qty: q }, () => {
-      const ex = day.counts.find(c=>c.product===prod); if(ex){ ex.qty=q; ex.who=me; } else day.counts.push({ date: today(), product: prod, qty: q, who: me });
+    const q = Math.max(0, parseInt($('qty').value,10)||0); const prod = countProduct, kind = countKind();
+    send({ type:'count', date: today(), product: prod, qty: q, kind }, () => {
+      const ex = day.counts.find(c=>c.product===prod && kindOf(c)===kind); if(ex){ ex.qty=q; ex.who=me; } else day.counts.push({ date: today(), product: prod, qty: q, who: me, kind });
     });
     toast(prod+' '+q+'개 저장했어요'); renderCount(); show('s-count');
   };
@@ -436,7 +507,7 @@
   function renderAll(){
     const rows = day.all || [];
     let h = '<tr><th>이름</th><th>제품</th><th>시작</th><th>종료</th><th>분</th></tr>';
-    rows.forEach(l => h += `<tr><td>${l.who}</td><td>${l.product}</td><td>${l.start}</td><td>${l.end || '진행 중'}</td><td>${l.mins ?? ''}</td></tr>`);
+    rows.forEach(l => h += `<tr><td>${l.who}</td><td>${l.product}${l.sheets ? ' ' + l.sheets + '장' : ''}</td><td>${l.start}</td><td>${l.end || '진행 중'}</td><td>${l.mins ?? ''}</td></tr>`);
     if(!rows.length) h += '<tr><td colspan="5">오늘 기록 없음 (새로 불러오기를 눌러 보세요)</td></tr>';
     if(day.counts.length){ h += '<tr><th colspan="5">오늘 포장 끝난 개수</th></tr>'; day.counts.forEach(c => h += `<tr><td>${c.who}</td><td>${c.product}</td><td colspan="3">${c.qty}개</td></tr>`); }
     $('allTable').innerHTML = h;
