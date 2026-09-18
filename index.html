@@ -30,6 +30,7 @@
   .top button{background:none;border:0;color:var(--ink-2);font:inherit;font-size:.95rem;text-decoration:underline;padding:6px}
   h1{font-size:1.5rem;font-weight:900;margin:8px 0 14px}
   .hint{font-size:1.05rem;color:var(--ink-2);margin:0 0 14px}
+  .hint.warn{color:var(--stop);font-weight:900;font-size:1.15rem;text-align:center;line-height:1.4}
   .sync{font-size:.9rem;color:var(--ink-2);text-align:right;margin:-6px 0 10px}
   .sync.bad{color:var(--stop);font-weight:700}
   .now{background:var(--mustard);color:var(--mustard-ink);border-radius:18px;padding:22px 20px;margin-bottom:16px;min-height:150px}
@@ -109,7 +110,7 @@
     <div class="sync" id="sync"></div>
     <div class="now" id="nowCard"></div>
     <button class="btn btn-main" id="btnChange">다른 일 시작하기</button>
-    <p class="hint">일이 바뀔 때마다 위 버튼을 한 번만 눌러 주세요. 안 누른 시간은 계산에서 빠집니다.</p>
+    <p class="hint warn">번거롭더라도 정확도를 위해서<br>일이 바뀔 때마다 꼭 눌러 주세요.</p>
     <button class="btn btn-stop" id="btnStop" hidden>지금 하는 일 끝내기</button>
     <button class="btn btn-sub" id="btnCount" hidden>포장 끝난 개수 적기</button>
     <button class="btn btn-sub" id="btnAll" hidden>오늘 전체 기록 보기</button>
@@ -174,6 +175,13 @@
     <div class="list" id="countList"></div>
     <button class="btn btn-back" data-go="s-home">돌아가기</button>
   </section>
+  <section class="screen" id="s-cetc">
+    <h1>제품 이름을 적어 주세요</h1>
+    <input type="text" id="cetcText" placeholder="예: 삼베꽃신" autocomplete="off">
+    <div style="height:14px"></div>
+    <button class="btn btn-go" id="btnCetcNext">다음</button>
+    <button class="btn btn-back" data-go="s-count">돌아가기</button>
+  </section>
   <section class="screen" id="s-count2">
     <div class="ask">
       <div class="big" id="ctName"></div>
@@ -221,7 +229,7 @@
 (function(){
   // ============ 설정: 구글 시트 웹 앱 주소 (배포 후 나온 /exec 주소를 따옴표 안에 붙여넣기)
   const SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbz_bdMhHIwyGthi9aaUJ4Ba1nd5SZNKKh5jDWjJnwQDE4sVHRTD6Vqpx-kX-xqLg-Cj/exec';
-  const APP_VERSION = '1.8.0';
+  const APP_VERSION = '1.8.2';
 
   // ============ 기준 데이터
   // [이름, 역할, 할 수 있는 공정]  역할: count=포장 개수 입력, office=끝내기 버튼, admin=전체 기록
@@ -231,7 +239,7 @@
     ['김옥순 과장님','',['봉제']],
     ['김순미 과장님','office',['시다']],
     ['김민호 주임님','office',['시다','포장']],
-    ['남중일 반장님','',['연단/재단','봉제','시다','포장']],
+    ['남중일 반장님','',['연단/재단','시다','포장']],
     ['박인숙 여사님','',['봉제']],
     ['김명숙 여사님','',['봉제']],
     ['김근영 여사님','',['봉제']],
@@ -260,6 +268,9 @@
   ];
   const NON_PRODUCT = ['공장 및 창고 정리정돈','기타(직접입력)'];
   const PRODUCTS = GROUPS.flatMap(g => g[1]).filter(p => !NON_PRODUCT.includes(p));
+  // 포장 개수 페이지 목록: 반제품·부자재 제외, 세트 추가
+  const COUNT_EXCLUDE = ['위생매트','우라납바','우라벨크로','매트납바','끈 추리기','우라접기'];
+  const COUNT_PRODUCTS = PRODUCTS.filter(p => !COUNT_EXCLUDE.includes(p)).flatMap(p => p === '수시이불세트' ? [p, '황금수시이불매트'] : [p]);
   const DAY_START = 8*60+30;
   // 일과 종료: 평일 17:55, 금요일 17:45 (그 뒤는 뒷정리·퇴근이라 기록하지 않음)
   const dayEnd = () => new Date().getDay() === 5 ? 17*60+45 : 17*60+55;
@@ -287,7 +298,24 @@
   const nowHM = () => { const d = new Date(); return pad(d.getHours())+':'+pad(d.getMinutes()); };
   const toMin = t => { const [h,m] = String(t).split(':').map(Number); return h*60+m; };
   const toHM = m => pad(Math.floor(m/60))+':'+pad(m%60);
-  function show(id){ document.querySelectorAll('.screen').forEach(s=>s.classList.remove('on')); $(id).classList.add('on'); window.scrollTo(0,0); }
+  // 화면 이동 + 폰 뒤로가기 지원: 홈이 바닥, 그 위로 지나온 화면을 쌓아 두고 뒤로가기(popstate)로 되돌아감. 홈에서 뒤로가기는 앱 종료.
+  let curScreen = null; const stack = [];
+  const renderers = {};   // 화면별 다시 그리기 (아래에서 채움)
+  function show(id, fromBack){
+    if(!fromBack && curScreen && curScreen !== id){
+      if(id === 's-home') stack.length = 0;
+      else { const i = stack.lastIndexOf(id); if(i >= 0) stack.length = i; else stack.push(curScreen); }
+    }
+    document.querySelectorAll('.screen').forEach(s=>s.classList.remove('on')); $(id).classList.add('on'); window.scrollTo(0,0); curScreen = id;
+    const dummy = !!(history.state && history.state.dummy);
+    if(stack.length && !dummy) history.pushState({ dummy: true }, '');
+    else if(!stack.length && dummy && !fromBack) history.back();   // 홈으로 왔으면 남은 뒤로가기 항목을 치워 다음 뒤로가기가 앱 종료가 되게
+  }
+  try{ history.replaceState({ root: true }, ''); }catch(e){}
+  window.addEventListener('popstate', () => {
+    if(!stack.length) return;                       // 홈: 브라우저가 알아서 나감
+    const prev = stack.pop(); if(renderers[prev]) renderers[prev](); show(prev, true);
+  });
   function toast(t, ms){ const el=$('toast'); el.textContent=t; el.classList.add('show'); clearTimeout(el._t); el._t=setTimeout(()=>el.classList.remove('show'), ms||1800); }
   const person = () => PEOPLE.find(p => p[0] === me);
   const role = () => { const p = person(); return p ? (p[1] || '') : ''; };
@@ -524,13 +552,15 @@
   function renderCount(){
     const kind = countKind(); $('countTitle').textContent = '오늘 ' + kind + ' 끝난 개수'; $('ctKind').textContent = '오늘 ' + kind + ' 끝난 개수';
     const g=$('countGrid'); g.innerHTML=''; const grid=document.createElement('div'); grid.className='grid';
-    PRODUCTS.forEach(it => { const b=document.createElement('button'); b.className='btn'; b.textContent=it;
-      b.onclick=()=>{ countProduct=it; $('ctName').textContent=it; const ex = day.counts.find(c=>c.product===it && kindOf(c)===kind); $('qty').value = ex? ex.qty : 0; show('s-count2'); }; grid.appendChild(b); });
+    COUNT_PRODUCTS.forEach(it => { const b=document.createElement('button'); b.className='btn'; b.textContent=it; b.onclick=()=>openCount(it); grid.appendChild(b); });
+    const etc=document.createElement('button'); etc.className='btn'; etc.textContent='기타(직접입력)'; etc.onclick=()=>{ $('cetcText').value=''; show('s-cetc'); setTimeout(()=>$('cetcText').focus(),50); }; grid.appendChild(etc);
     g.appendChild(grid);
     const list=$('countList'); list.innerHTML=''; const mine = day.counts.filter(c => kindOf(c)===kind);
     if(mine.length){ mine.forEach(c=>{ const r=document.createElement('div'); r.className='row'; r.innerHTML=`<span class="t">${c.qty}개</span><span class="p">${c.product}<small>${c.who}</small></span>`; list.appendChild(r); }); }
     else list.innerHTML='<div class="row"><span class="t">오늘</span><span class="p" style="color:var(--ink-2)">아직 적은 개수 없음</span></div>';
   }
+  function openCount(it){ countProduct=it; $('ctName').textContent=it; const ex = day.counts.find(c=>c.product===it && kindOf(c)===countKind()); $('qty').value = ex? ex.qty : 0; show('s-count2'); }
+  $('btnCetcNext').onclick = () => { const t=$('cetcText').value.trim(); if(!t){ toast('제품 이름을 적어 주세요'); return; } openCount(t); };
   const bump = d => { const i=$('qty'); i.value = Math.max(0, (parseInt(i.value,10)||0) + d); };
   $('qMinus').onclick=()=>bump(-1); $('qPlus').onclick=()=>bump(1);
   document.querySelectorAll('.qty10 .btn').forEach(b => b.onclick=()=>bump(parseInt(b.dataset.d,10)));
@@ -560,6 +590,7 @@
   $('btnReloadAll').onclick = openAll;
 
   // ============ 이동·시계·시작
+  Object.assign(renderers, { 's-home': renderHome, 's-pick': renderPick, 's-count': renderCount, 's-all': renderAll });
   $('btnChange').onclick = () => { renderPick(); show('s-pick'); };
   $('btnCount').onclick = () => { renderCount(); show('s-count'); };
   $('btnAll').onclick = openAll;
