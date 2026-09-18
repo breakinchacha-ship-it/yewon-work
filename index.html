@@ -229,7 +229,7 @@
 (function(){
   // ============ 설정: 구글 시트 웹 앱 주소 (배포 후 나온 /exec 주소를 따옴표 안에 붙여넣기)
   const SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbz_bdMhHIwyGthi9aaUJ4Ba1nd5SZNKKh5jDWjJnwQDE4sVHRTD6Vqpx-kX-xqLg-Cj/exec';
-  const APP_VERSION = '1.8.2';
+  const APP_VERSION = '1.9.0';
 
   // ============ 기준 데이터
   // [이름, 역할, 할 수 있는 공정]  역할: count=포장 개수 입력, office=끝내기 버튼, admin=전체 기록
@@ -322,6 +322,8 @@
   const startHM = () => toHM(snapStart(toMin(nowHM())));
 
   function ensureToday(){ if(day.date !== today()){ day = { date: today(), logs: [], counts: [] }; store.set('day', day); } }
+  // 쉬는 날: 시트 '휴일' 탭 기준(서버가 알려줌). 아직 못 받았으면 주말만 판단
+  const offToday = () => (day.date === today() && day.offKnown) ? (day.off || '') : ([0,6].includes(new Date().getDay()) ? '주말' : '');
   // 화면용 규칙: 18:00 지났으면 열린 기록은 18:00으로 표시
   function viewLogs(){ ensureToday(); const late = toMin(nowHM()) > dayEnd();
     return day.logs.map(l => (!l.end && late) ? { ...l, end: toHM(dayEnd()) } : l); }
@@ -331,7 +333,7 @@
   function setSync(t, bad){ const el=$('sync'); el.textContent = t || ''; el.className = 'sync' + (bad ? ' bad' : ''); }
   function applyServer(data){
     if(!data || !data.ok) return false;
-    day = { date: data.date, logs: (data.logs||[]).filter(l => l.who === me), counts: data.counts || [] };
+    day = { date: data.date, logs: (data.logs||[]).filter(l => l.who === me), counts: data.counts || [], off: data.off || '', offKnown: true };
     if(role()==='admin') day.all = data.logs || [];
     store.set('day', day); return true;
   }
@@ -393,9 +395,12 @@
     const cur = mine.find(l => !l.end);
     const card = $('nowCard');
     const tag = l => (multiProc() && l.proc ? ' · ' + l.proc : '') + (l.sheets ? ' ' + l.sheets + '장' : '');
+    const off = offToday();
     if(cur){ card.className='now'; card.innerHTML = `<div class="lbl">지금 하는 일</div><div class="name">${cur.product}${tag(cur)}</div><div class="since">${cur.start}부터</div>`; }
+    else if(off){ card.className='now empty'; card.innerHTML = `<div class="lbl">오늘</div><div class="name">쉬는 날이에요 (${off})</div>`; }
     else { card.className='now empty'; card.innerHTML = `<div class="lbl">지금 하는 일</div><div class="name">아직 오늘 일을 누르지 않았어요</div>`; }
     $('btnChange').textContent = cur ? '다른 일 시작하기' : '시작하기';
+    $('btnChange').hidden = !!off && !cur; document.querySelector('.hint.warn').hidden = !!off && !cur;
     const r = role();
     $('btnStop').hidden = !(cur && (r==='office' || r==='admin'));
     $('btnCount').hidden = !(r==='count' || r==='admin');
@@ -450,6 +455,7 @@
   $('btnEtcNext').onclick = () => { const t=$('etcText').value.trim(); if(!t){ toast('무슨 일인지 적어 주세요'); return; } prepare('기타: '+t); };
 
   function startNow(){
+    if(offToday()){ toast('오늘은 쉬는 날(' + offToday() + ')이라 등록할 수 없어요', 2600); show('s-home'); return; }
     if(toMin(nowHM()) >= dayEnd()){ toast('오늘 일과(' + toHM(dayEnd()) + ')가 끝나서 더 등록할 수 없어요', 2600); show('s-home'); return; }
     if(pending.proc === CUT){ const n = parseInt(cfDigits,10)||0; if(n<=0){ toast('몇 장 연단할지 숫자를 눌러 주세요'); return; } pending.sheets = n;
       pending.helpers = helperSel.filter(h => h !== me); store.set('helpers', pending.helpers); }
