@@ -229,7 +229,7 @@
 (function(){
   // ============ 설정: 구글 시트 웹 앱 주소 (배포 후 나온 /exec 주소를 따옴표 안에 붙여넣기)
   const SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbz_bdMhHIwyGthi9aaUJ4Ba1nd5SZNKKh5jDWjJnwQDE4sVHRTD6Vqpx-kX-xqLg-Cj/exec';
-  const APP_VERSION = '1.9.2';
+  const APP_VERSION = '1.9.3';
 
   // ============ 기준 데이터
   // [이름, 역할, 할 수 있는 공정]  역할: count=포장 개수 입력, office=끝내기 버튼, admin=전체 기록
@@ -250,7 +250,7 @@
   const PROC_ORDER = ['연단/재단','봉제','시다','꺾기','프레스','포장'];
   const HELPERS = ['김명숙 차장님','김민호 주임님','신미숙 여사님','전계진 실장님'];   // 연단(나라시) 같이 하는 분들
   const CUT = '연단/재단';
-  const NO_CUT = ['운구매트'];   // 연단/재단 버튼을 보이지 않을 제품
+  const NO_CUT = ['운구매트','황금이불매트세트'];   // 연단/재단 버튼을 보이지 않을 제품
   // 고깔은 시다 대신 꺾기·프레스. 정리정돈·기타는 공정 없음.
   function procsFor(product){
     const p = person(); if(!p || NON_PRODUCT.includes(product)) return [];
