@@ -132,7 +132,7 @@
       <div class="sm" id="cfTime"></div>
     </div>
     <div id="cfProcWrap" hidden>
-      <p class="hint" style="margin-bottom:8px">어떤 일을 하시나요? 누르면 바로 시작됩니다.</p>
+      <p class="hint" style="margin-bottom:8px">어떤 일을 하시나요?</p>
       <div class="grid" id="cfProcs"></div>
     </div>
     <div id="cfFabric" hidden>
@@ -253,7 +253,7 @@
 (function(){
   // ============ 설정: 구글 시트 웹 앱 주소 (배포 후 나온 /exec 주소를 따옴표 안에 붙여넣기)
   const SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbz_bdMhHIwyGthi9aaUJ4Ba1nd5SZNKKh5jDWjJnwQDE4sVHRTD6Vqpx-kX-xqLg-Cj/exec';
-  const APP_VERSION = '2.0.0';
+  const APP_VERSION = '2.0.1';
 
   // ============ 기준 데이터
   // [이름, 역할, 할 수 있는 공정]  역할: count=포장 개수 입력, office=끝내기 버튼, admin=전체 기록
@@ -279,12 +279,15 @@
     '면모': ['목화원단','엠보원단'], '와플관보': ['와플원단','블랙스판원단'], '바디백': ['바디백원단'],
   };
   const CONFIRM_PROCS = ['연단','재단'];   // 이 공정은 바로 시작하지 않고 확인(메모) 단계를 거침
+  const FORCE_PROC = { '끈 추리기':'시다', '우라접기':'시다', '황금이불매트세트':'포장' };            // 누가 하든 이 공정으로 기록 (고르지 않음)
+  const REQUIRE_PROC = { '우라납바':'봉제', '우라벨크로':'봉제', '매트납바':'봉제', '황금이불매트세트':'포장' };   // 이 공정을 하는 사람에게만 보이는 제품
   const HELPERS = ['김명숙 차장님','김민호 주임님','신미숙 여사님','전계진 실장님'];   // 연단(나라시) 같이 하는 분들
   const CUT = '연단';
   const NO_CUT = ['운구매트','황금이불매트세트'];   // 연단·재단 버튼을 보이지 않을 제품
   // 고깔은 시다 대신 꺾기·프레스. 정리정돈·기타는 공정 없음.
   function procsFor(product){
     const p = person(); if(!p || NON_PRODUCT.includes(product)) return [];
+    if(FORCE_PROC[product]) return [FORCE_PROC[product]];
     let list = p[2].slice();
     if(NO_CUT.includes(product)) list = list.filter(x => x !== '연단' && x !== '재단');   // 연단·재단이 없는 제품
     if(product === '고깔' && list.includes('시다')) list = list.filter(x => x !== '시다').concat(['꺾기','프레스']);
@@ -449,7 +452,10 @@
   // ============ 화면: 제품 고르기 → 확인 → 시작
   function renderPick(){
     const g = $('pickGrid'); g.innerHTML='';
-    GROUPS.forEach(([name, items]) => {
+    const p = person();
+    GROUPS.forEach(([name, allItems]) => {
+      const items = allItems.filter(it => !REQUIRE_PROC[it] || (p && p[2].includes(REQUIRE_PROC[it])));
+      if(!items.length) return;
       const h=document.createElement('div'); h.className='grp'; h.textContent=name; g.appendChild(h);
       const grid=document.createElement('div'); grid.className='grid';
       items.forEach(it => { const b=document.createElement('button'); b.className='btn'; b.textContent=it;
