@@ -51,6 +51,9 @@
   .grid{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:18px}
   .grid .btn{background:var(--card);color:var(--ink);border:3px solid var(--line);font-size:1.3rem;padding:18px 10px;min-height:88px;display:flex;align-items:center;justify-content:center;text-align:center;word-break:keep-all;line-height:1.2}
   .grid .btn.sel{background:var(--navy);color:var(--navy-ink);border-color:var(--navy)}
+  .grid .btn{flex-direction:column;min-width:0}
+  .grid .btn .m{display:block;max-width:100%}
+  .grid .btn small{display:block;font-size:.85rem;font-weight:700;color:var(--stop);margin-top:4px;line-height:1.1}
   .grp{font-size:1.05rem;font-weight:900;color:var(--ink-2);margin:6px 0 10px;padding-top:12px;border-top:4px solid var(--line)}
   .grp:first-of-type{border-top:0;padding-top:0}
   .ask{background:var(--card);border-radius:18px;padding:22px 20px;margin-bottom:16px;border:3px solid var(--line)}
@@ -282,7 +285,7 @@
 (function(){
   // ============ 설정: 구글 시트 웹 앱 주소 (배포 후 나온 /exec 주소를 따옴표 안에 붙여넣기)
   const SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbz_bdMhHIwyGthi9aaUJ4Ba1nd5SZNKKh5jDWjJnwQDE4sVHRTD6Vqpx-kX-xqLg-Cj/exec';
-  const APP_VERSION = '2.1.0';
+  const APP_VERSION = '2.1.1';
 
   // ============ 기준 데이터
   // [이름, 역할, 할 수 있는 공정]  역할: count=포장 개수 입력, office=끝내기 버튼, admin=전체 기록
@@ -314,6 +317,7 @@
   const CUT = '연단';
   const NO_CUT = ['운구매트','황금이불매트세트'];   // 연단·재단 버튼을 보이지 않을 제품
   const NO_PROC = { '위생매트': ['포장'] };            // 제품별로 빼는 공정 (위생매트 포장은 세트로 함)
+  const SUBTITLE = { '황금이불매트세트': '포장만', '운구매트': '면모 부착만' };   // 제품 버튼 아래에 붙는 안내
   // 고깔은 시다 대신 꺾기·프레스. 정리정돈·기타는 공정 없음.
   function procsFor(product){
     const p = person(); if(!p || NON_PRODUCT.includes(product)) return [];
@@ -490,7 +494,9 @@
       if(!items.length) return;
       const h=document.createElement('div'); h.className='grp'; h.textContent=name; g.appendChild(h);
       const grid=document.createElement('div'); grid.className='grid';
-      items.forEach(it => { const b=document.createElement('button'); b.className='btn'; b.textContent=it;
+      items.forEach(it => { const b=document.createElement('button'); b.className='btn';
+        const m=document.createElement('span'); m.className='m'; m.textContent=it; b.appendChild(m);
+        if(SUBTITLE[it]){ const sm=document.createElement('small'); sm.textContent=SUBTITLE[it]; b.appendChild(sm); }
         b.onclick=()=>{ if(it==='기타(직접입력)'){ $('etcText').value=''; show('s-etc'); setTimeout(()=>$('etcText').focus(),50); } else prepare(it); };
         grid.appendChild(b); });
       g.appendChild(grid);
