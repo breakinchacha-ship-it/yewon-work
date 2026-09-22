@@ -253,7 +253,7 @@
 (function(){
   // ============ 설정: 구글 시트 웹 앱 주소 (배포 후 나온 /exec 주소를 따옴표 안에 붙여넣기)
   const SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbz_bdMhHIwyGthi9aaUJ4Ba1nd5SZNKKh5jDWjJnwQDE4sVHRTD6Vqpx-kX-xqLg-Cj/exec';
-  const APP_VERSION = '2.0.1';
+  const APP_VERSION = '2.0.2';
 
   // ============ 기준 데이터
   // [이름, 역할, 할 수 있는 공정]  역할: count=포장 개수 입력, office=끝내기 버튼, admin=전체 기록
@@ -310,7 +310,8 @@
   const COUNT_PRODUCTS = PRODUCTS.filter(p => !COUNT_EXCLUDE.includes(p));
   const DAY_START = 8*60+30;
   // 일과 종료: 평일 17:55, 금요일 17:45 (그 뒤는 뒷정리·퇴근이라 기록하지 않음)
-  const dayEnd = () => new Date().getDay() === 5 ? 17*60+45 : 17*60+55;
+  // 시트 '휴일' 탭에 그날 '종료' 시각이 적혀 있으면 그 시각(서버가 알려줌), 아니면 평일 17:55 · 금 17:45
+  const dayEnd = () => (day && day.date === today() && day.dayEnd) ? toMin(day.dayEnd) : (new Date().getDay() === 5 ? 17*60+45 : 17*60+55);
   const BREAKS = [[11*60, 11*60+15], [13*60, 14*60], [16*60, 16*60+15]];   // 휴게: 시작~끝(분)
   // 휴게시간 안에서 시작을 누르면 휴게 끝부터, 그 전 일의 종료는 휴게 시작으로 기록 (예: 14:00 등록 → 전 일 13:00 종료)
   const snapStart = m => { for(const [a,b] of BREAKS) if(m>=a && m<b) m=b; return Math.max(m, DAY_START); };
@@ -370,7 +371,7 @@
   function setSync(t, bad){ const el=$('sync'); el.textContent = t || ''; el.className = 'sync' + (bad ? ' bad' : ''); }
   function applyServer(data){
     if(!data || !data.ok) return false;
-    day = { date: data.date, logs: (data.logs||[]).filter(l => l.who === me), counts: data.counts || [], off: data.off || '', offKnown: true };
+    day = { date: data.date, logs: (data.logs||[]).filter(l => l.who === me), counts: data.counts || [], off: data.off || '', offKnown: true, dayEnd: data.dayEnd || '' };
     if(role()==='admin') day.all = data.logs || [];
     store.set('day', day); return true;
   }
