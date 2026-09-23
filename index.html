@@ -27,7 +27,7 @@
   .top{display:flex;justify-content:space-between;align-items:baseline;margin-bottom:14px}
   .top .who{font-size:1.3rem;font-weight:900}
   .top .clock{font-size:1.1rem;color:var(--ink-2);font-variant-numeric:tabular-nums}
-  .top button{background:none;border:0;color:var(--ink-2);font:inherit;font-size:.95rem;text-decoration:underline;padding:6px}
+  .top button{background:none;border:0;color:#9AA0A8;font:inherit;font-size:.8rem;text-decoration:underline;padding:6px}
   h1{font-size:1.5rem;font-weight:900;margin:8px 0 14px}
   .hint{font-size:1.05rem;color:var(--ink-2);margin:0 0 14px}
   .hint.warn{color:var(--stop);font-weight:900;font-size:1.15rem;text-align:center;line-height:1.4}
@@ -64,10 +64,6 @@
   input.memo{font-size:1.15rem;font-weight:500;text-align:left;padding:14px 16px}
   .lbl2{font-size:1rem;font-weight:900;color:var(--ink-2);margin:12px 0 6px}
   input:focus{outline:4px solid var(--navy);outline-offset:2px}
-  .qty{display:grid;grid-template-columns:1fr 1.6fr 1fr;gap:10px;align-items:center;margin:14px 0}
-  .qty .btn{font-size:2rem;padding:18px 0;min-height:84px;background:var(--card);border:3px solid var(--line);color:var(--ink)}
-  .qty10{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:16px}
-  .qty10 .btn{font-size:1.4rem;padding:16px 0;background:var(--card);border:3px solid var(--line);color:var(--ink)}
   .list{background:var(--card);border-radius:16px;border:3px solid var(--line);overflow:hidden;margin-bottom:16px}
   .row{display:grid;grid-template-columns:auto 1fr;gap:12px;padding:12px 14px;border-top:2px solid var(--line);font-size:1.05rem;align-items:baseline}
   .row:first-child{border-top:0}
@@ -102,6 +98,20 @@
   .chk.on .box::after{content:'✓';color:#fff;position:absolute;left:0;right:0;top:-3px;text-align:center;font-size:1.5rem;font-weight:900}
   .toast{position:fixed;left:50%;bottom:28px;transform:translateX(-50%);background:var(--ink);color:var(--paper);font-size:1.15rem;font-weight:700;padding:14px 22px;border-radius:14px;opacity:0;transition:opacity .2s;pointer-events:none;max-width:92vw;text-align:center;z-index:9}
   .toast.show{opacity:1}
+  /* 방금 시작한 것 되돌리기 (몇 초만 보임) */
+  .undo{position:fixed;left:14px;right:14px;bottom:16px;max-width:532px;margin:0 auto;background:#111;color:#fff;border-radius:16px;padding:12px 12px 12px 18px;display:flex;justify-content:space-between;align-items:center;gap:10px;font-weight:700;font-size:1.05rem;box-shadow:0 6px 20px rgba(0,0,0,.35);z-index:15;word-break:keep-all}
+  .undo .u{width:auto;background:var(--mustard);color:var(--mustard-ink);border-radius:12px;padding:12px 16px;font-size:1.1rem;white-space:nowrap;flex:none}
+  .undo .u small{font-size:.9rem;font-weight:700;opacity:.75;margin-left:6px}
+  body.undo-on .toast{bottom:112px}   /* 되돌리기 띠가 있을 땐 안내 말풍선을 그 위로 */
+  /* 진행 상황 (누가 뭐 하는지) */
+  .st{display:grid;grid-template-columns:1fr auto;gap:4px 12px;padding:12px 14px;border-top:2px solid var(--line);align-items:center}
+  .st:first-child{border-top:0}
+  .st .n{font-size:1.15rem;font-weight:900;word-break:keep-all}
+  .st .d{font-size:1.05rem;color:var(--ink-2);grid-column:1/3;word-break:keep-all}
+  .st .e{font-size:1rem;font-weight:700;color:var(--ink-2);white-space:nowrap;text-align:right}
+  .st.miss{background:#FBE9E7}
+  .st.miss .e{color:var(--stop);font-weight:900}
+  .st.idle{opacity:.6}
   @media (prefers-reduced-motion: reduce){ .btn:active{transform:none} .toast{transition:none} }
 </style>
 </head>
@@ -125,7 +135,7 @@
     <p class="hint warn">번거롭더라도 정확도를 위해서<br>일이 바뀔 때마다 꼭 눌러 주세요.</p>
     <button class="btn btn-stop" id="btnStop" hidden>지금 하는 일 끝내기</button>
     <button class="btn btn-sub" id="btnCount" hidden>포장 끝난 개수 적기</button>
-    <button class="btn btn-sub" id="btnAll" hidden>오늘 전체 기록 보기</button>
+    <button class="btn btn-sub" id="btnAll" hidden>진행 상황 보기</button>
     <div class="list" id="todayList"></div>
     <div class="top"><span></span><button id="btnRename">이름 바꾸기</button></div>
   </section>
@@ -136,17 +146,14 @@
     <button class="btn btn-back" data-go="s-home">돌아가기</button>
   </section>
 
+  <!-- 공정이 둘 이상인 분만 거침: 공정 버튼을 누르면 바로 시작 -->
   <section class="screen" id="s-confirm">
     <div class="ask">
       <div class="big" id="cfName"></div>
-      <div class="sm" id="cfTime"></div>
+      <div class="sm">어떤 일을 하시나요?</div>
     </div>
-    <div id="cfProcWrap" hidden>
-      <p class="hint" style="margin-bottom:8px">어떤 일을 하시나요?</p>
-      <div class="grid" id="cfProcs"></div>
-    </div>
-    <button class="btn btn-go" id="btnStart">네, 지금 시작</button>
-    <button class="btn btn-back" data-go="s-pick">아니오, 다시 고르기</button>
+    <div class="grid" id="cfProcs"></div>
+    <button class="btn btn-back" data-go="s-pick">돌아가기</button>
   </section>
 
   <!-- 연단 1단계: 원단 -->
@@ -171,9 +178,9 @@
     <button class="btn btn-back" data-go="s-fab">돌아가기</button>
   </section>
 
-  <!-- 마지막 단계: 같이 하는 분(연단만) · 메모 · 시작 -->
+  <!-- 연단 3단계: 같이 하는 분 · 메모 · 시작 -->
   <section class="screen" id="s-final">
-    <div class="step" id="fnStep"><i class="on"></i><i class="on"></i><i class="on"></i></div>
+    <div class="step"><i class="on"></i><i class="on"></i><i class="on"></i></div>
     <div class="ask"><div class="big" id="fnName"></div><div class="sm" id="fnSub"></div></div>
     <div id="fnHelpers" hidden>
       <p class="hint" style="margin-bottom:8px">누구랑 같이 하시나요? (같이 하는 분을 모두 누르세요)</p>
@@ -246,15 +253,8 @@
       <div class="big" id="ctName"></div>
       <div class="sm" id="ctKind">오늘 포장 끝난 개수</div>
     </div>
-    <div class="qty">
-      <button class="btn" id="qMinus">－</button>
-      <input type="number" id="qty" inputmode="numeric" value="0" min="0">
-      <button class="btn" id="qPlus">＋</button>
-    </div>
-    <div class="qty10">
-      <button class="btn" data-d="-10">－10</button>
-      <button class="btn" data-d="10">＋10</button>
-    </div>
+    <div class="ask"><div class="tm-big" id="ctVal" style="margin-top:0">0 개</div></div>
+    <div class="pad" id="ctPad"></div>
     <button class="btn btn-go" id="btnSaveCount">저장</button>
     <button class="btn btn-back" data-go="s-count">돌아가기</button>
   </section>
@@ -279,15 +279,19 @@
     <button class="btn btn-back" data-go="s-edit">돌아가기</button>
   </section>
 
+  <!-- 진행 상황: 지금 누가 뭐 하는지 (차장님·실장님). 안 누른 사람이 빨갛게 맨 위로 -->
   <section class="screen" id="s-all">
-    <h1>오늘 전체 기록</h1>
+    <h1>진행 상황</h1>
     <p class="hint" id="allStatus"></p>
-    <div class="wrap"><table id="allTable"></table></div>
+    <div class="list" id="statusList"></div>
     <button class="btn btn-sub" id="btnReloadAll">새로 불러오기</button>
+    <button class="btn btn-sub" id="btnAllTable" hidden>오늘 전체 기록 표 보기</button>
+    <div class="wrap" id="allWrap" hidden><table id="allTable"></table></div>
     <button class="btn btn-back" data-go="s-home">돌아가기</button>
   </section>
 
 </div>
+<div class="undo" id="undoBar" hidden><span id="undoText"></span><button class="btn u" id="btnUndo">되돌리기<small id="undoN">6</small></button></div>
 <div class="done" id="done"><div class="chk">✓</div><div class="t" id="doneT"></div><div class="s" id="doneS"></div></div>
 <div class="toast" id="toast"></div>
 
@@ -295,7 +299,7 @@
 (function(){
   // ============ 설정: 구글 시트 웹 앱 주소 (배포 후 나온 /exec 주소를 따옴표 안에 붙여넣기)
   const SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbz_bdMhHIwyGthi9aaUJ4Ba1nd5SZNKKh5jDWjJnwQDE4sVHRTD6Vqpx-kX-xqLg-Cj/exec';
-  const APP_VERSION = '2.3.1';
+  const APP_VERSION = '2.4.1';
 
   // ============ 기준 데이터
   // [이름, 역할, 할 수 있는 공정]  역할: count=포장 개수 입력, office=끝내기 버튼, admin=전체 기록
@@ -320,7 +324,6 @@
     '위생매트': ['트로피칼','방수포'], '염보': ['오렌지원단','엠보원단'], '고깔': ['고깔원단'], '하대': ['목화원단','엠보원단'],
     '면모': ['목화원단','엠보원단'], '와플관보': ['와플원단','블랙스판원단'], '바디백': ['바디백원단'],
   };
-  const CONFIRM_PROCS = ['연단','재단'];   // 이 공정은 바로 시작하지 않고 확인(메모) 단계를 거침
   const FORCE_PROC = { '끈 추리기':'시다', '우라접기':'시다', '황금이불매트세트':'포장' };            // 누가 하든 이 공정으로 기록 (고르지 않음)
   const REQUIRE_PROC = { '우라납바':'봉제', '우라벨크로':'봉제', '매트납바':'봉제', '황금이불매트세트':'포장' };   // 이 공정을 하는 사람에게만 보이는 제품
   const HELPERS = ['김명숙 차장님','김민호 주임님','신미숙 여사님','전계진 실장님'];   // 연단(나라시) 같이 하는 분들
@@ -328,9 +331,9 @@
   const NO_CUT = ['황금이불매트세트'];   // 연단·재단 버튼을 보이지 않을 제품
   const NO_PROC = { '위생매트': ['포장'] };            // 제품별로 빼는 공정 (위생매트 포장은 세트로 함)
   const SUBTITLE = { '황금이불매트세트': '포장만', '위생매트': '(운구매트)' };   // 제품 버튼 아래에 붙는 안내
-  // 고깔은 시다 대신 꺾기·프레스. 정리정돈·기타는 공정 없음.
+  // 고깔은 시다 대신 꺾기·프레스. 정리정돈·기타(직접입력)는 공정 없음.
   function procsFor(product){
-    const p = person(); if(!p || NON_PRODUCT.includes(product)) return [];
+    const p = person(); if(!p || NON_PRODUCT.includes(product) || String(product).startsWith('기타: ')) return [];
     if(FORCE_PROC[product]) return [FORCE_PROC[product]];
     let list = p[2].slice();
     if(NO_CUT.includes(product)) list = list.filter(x => x !== '연단' && x !== '재단');   // 연단·재단이 없는 제품
@@ -373,6 +376,7 @@
   let day = store.get('day', { date: '', logs: [], counts: [] });  // 서버에서 받은 오늘 기록 사본
   let queue = store.get('queue', []);                                 // 전송 못 한 등록
   let pending = null, countProduct = null, sending = false;
+  let undo = null, undoTimer = null;                                  // 방금 시작한 것 되돌리기
 
   // ============ 유틸
   const $ = id => document.getElementById(id);
@@ -390,6 +394,7 @@
       else { const i = stack.lastIndexOf(id); if(i >= 0) stack.length = i; else stack.push(curScreen); }
     }
     document.querySelectorAll('.screen').forEach(s=>s.classList.remove('on')); $(id).classList.add('on'); window.scrollTo(0,0); curScreen = id;
+    if(id !== 's-home' && undoTimer) hideUndo();   // 홈을 떠나면 되돌리기 띠는 접음
     const dummy = !!(history.state && history.state.dummy);
     if(stack.length && !dummy) history.pushState({ dummy: true }, '');
     else if(!stack.length && dummy && !fromBack) history.back();   // 홈으로 왔으면 남은 뒤로가기 항목을 치워 다음 뒤로가기가 앱 종료가 되게
@@ -402,6 +407,7 @@
   function toast(t, ms){ const el=$('toast'); el.textContent=t; el.classList.add('show'); clearTimeout(el._t); el._t=setTimeout(()=>el.classList.remove('show'), ms||1800); }
   const person = () => PEOPLE.find(p => p[0] === me);
   const role = () => { const p = person(); return p ? (p[1] || '') : ''; };
+  const wantAll = () => role() === 'admin' || role() === 'count';   // 남들 기록도 받아오는 사람 (진행 상황 화면)
   const startHM = () => toHM(snapStart(toMin(nowHM())));
   const elapsedText = start => { const m = Math.max(0, toMin(nowHM()) - toMin(start)); return m < 1 ? '방금' : (m >= 60 ? Math.floor(m/60) + '시간 ' : '') + (m % 60) + '분째'; };
 
@@ -418,7 +424,7 @@
   function applyServer(data){
     if(!data || !data.ok) return false;
     day = { date: data.date, logs: (data.logs||[]).filter(l => l.who === me), counts: data.counts || [], off: data.off || '', offKnown: true, dayEnd: data.dayEnd || '' };
-    if(role()==='admin') day.all = data.logs || [];
+    if(wantAll()) day.all = data.logs || [];
     store.set('day', day); return true;
   }
   async function apiGet(all){
@@ -428,14 +434,14 @@
   }
   async function apiPost(obj){
     if(!configured()) throw new Error('not configured');
-    const body = JSON.stringify({ ...obj, who: me, device, all: role()==='admin' });
+    const body = JSON.stringify({ ...obj, who: me, device, all: wantAll() });
     try{
       const r = await fetch(SCRIPT_URL, { method:'POST', redirect:'follow', body });
       return await r.json();
     }catch(e){
       // 일부 폰 브라우저가 응답 읽기를 막는 경우: 보내기만 하고(no-cors) 결과는 다시 읽어온다
       await fetch(SCRIPT_URL, { method:'POST', mode:'no-cors', redirect:'follow', body });
-      return await apiGet(role()==='admin');
+      return await apiGet(wantAll());
     }
   }
   // 대기열 전송
@@ -451,17 +457,21 @@
   async function refresh(){
     if(!configured()){ setSync('시험 모드: 이 폰에만 저장', true); return false; }
     if(queue.length){ await flush(); return queue.length === 0; }
-    try{ applyServer(await apiGet(role()==='admin')); setSync('저장됨 ✓'); return true; }
+    try{ applyServer(await apiGet(wantAll())); setSync('저장됨 ✓'); return true; }
     catch(e){ setSync('연결 안 됨: ' + (e && e.message ? e.message : e) + ' (기록은 폰에 남아 있어요)', true); return false; }
   }
-  // 등록 보내기: 먼저 화면에 반영하고, 서버로 보내고, 실패하면 대기열
+  // 등록 보내기: 먼저 화면에 반영하고, 서버로 보내고, 실패하면 대기열. 보내는 중인 건은 inflight 에 둠(되돌리기가 기다림)
+  let inflight = null;
   async function send(obj, localApply){
     ensureToday(); localApply(); store.set('day', day); renderHome();
     if(!configured()) return;
-    try{ setSync('저장 중…'); const data = await apiPost(obj); if(!data || !data.ok) throw new Error(data && data.error || 'fail');
-      applyServer(data); renderHome(); setSync('저장됨 ✓'); }
-    catch(e){ queue.push(obj); store.set('queue', queue); setSync('저장 대기 ' + queue.length + '건 (인터넷 연결되면 자동 전송)', true);
-      toast('인터넷이 안 돼서 폰에 저장했어요. 연결되면 자동으로 올라갑니다', 2600); }
+    const p = (async () => {
+      try{ setSync('저장 중…'); const data = await apiPost(obj); if(!data || !data.ok) throw new Error(data && data.error || 'fail');
+        applyServer(data); renderHome(); setSync('저장됨 ✓'); }
+      catch(e){ queue.push(obj); store.set('queue', queue); setSync('저장 대기 ' + queue.length + '건 (인터넷 연결되면 자동 전송)', true);
+        toast('인터넷이 안 돼서 폰에 저장했어요. 연결되면 자동으로 올라갑니다', 2600); }
+    })();
+    inflight = p; await p; if(inflight === p) inflight = null;
   }
 
   // ============ 화면: 이름
@@ -488,7 +498,7 @@
     const r = role();
     $('btnStop').hidden = !(cur && (r==='office' || r==='admin'));
     $('btnCount').hidden = !(r==='count' || r==='admin');
-    $('btnAll').hidden = !(r==='admin');
+    $('btnAll').hidden = !wantAll();
     const list = $('todayList'); list.innerHTML='';
     if(mine.length){ mine.forEach((l, i) => { const row=document.createElement('div'); row.className='row';
       row.innerHTML=`<span class="t">${l.start}~${l.end || '지금'}</span><span class="p">${l.product}${tag(l)}${l.memo ? '<small>메모: ' + l.memo + '</small>' : ''}</span>`;
@@ -524,24 +534,20 @@
       b.onclick = () => { helperSel = helperSel.includes(h) ? helperSel.filter(x => x !== h) : helperSel.concat([h]); b.classList.toggle('sel', helperSel.includes(h)); };
       g.appendChild(b); }); }
 
-  // ---- 1) 제품 확인 · 공정 고르기
+  // ---- 1) 제품을 누르면 바로 시작. 공정이 둘 이상인 분만 공정 버튼을 한 번 더 누름(누르면 바로 시작)
   function prepare(product){
     const list = procsFor(product);
     pending = { product, proc: list.length === 1 ? list[0] : '', sheets: 0, fabric: '', memo: '', helpers: [] };
+    if(list.length <= 1){ startNow(); return; }
     $('cfName').textContent = product;
-    $('cfTime').textContent = startHM() + ' 부터로 기록됩니다';
-    const multi = list.length > 1;
-    $('cfProcWrap').hidden = !multi; $('btnStart').hidden = multi;     // 공정이 여럿이면 공정 버튼이 곧 다음 단계
     const g = $('cfProcs'); g.innerHTML = '';
     list.forEach(pr => { const btn = document.createElement('button'); btn.className = 'btn'; btn.textContent = pr;
       btn.onclick = () => { pending.proc = pr;
-        if(pr === CUT) openFab();                              // 연단: 원단 → 장수 → 같이 하는 분·메모 → 시작
-        else if(CONFIRM_PROCS.includes(pr)) openFinal();       // 재단: 메모 → 시작
-        else startNow(); };                                    // 시다·포장: 바로 시작
+        if(pr === CUT) openFab();     // 연단: 원단 → 장수 → 같이 하는 분·메모 → 시작
+        else startNow(); };           // 재단·시다·포장: 바로 시작 (메모는 기록의 '수정'에서)
       g.appendChild(btn); });
     show('s-confirm');
   }
-  $('btnStart').onclick = () => startNow();
   $('btnEtcNext').onclick = () => { const t=$('etcText').value.trim(); if(!t){ toast('무슨 일인지 적어 주세요'); return; } prepare('기타: '+t); };
 
   // ---- 2) 연단: 원단 (목록이 있으면 누르는 즉시 다음, 없으면 적거나 비워두고 다음)
@@ -563,17 +569,15 @@
   makePad($('siPad'), k => { siDigits = pressDigits(siDigits, k, 4); $('siVal').textContent = (siDigits || '__') + ' 장'; });
   $('btnSiNext').onclick = () => { const n = parseInt(siDigits,10)||0; if(n<=0){ toast('몇 장 연단할지 숫자를 눌러 주세요'); return; } pending.sheets = n; openFinal(); };
 
-  // ---- 4) 마지막: 같이 하는 분(연단만) · 메모 · 시작
+  // ---- 4) 연단 마지막: 같이 하는 분 · 메모 · 시작
   function openFinal(){
-    const cut = pending.proc === CUT;
     $('fnName').textContent = pending.product;
     $('fnSub').textContent = pending.proc + (pending.fabric ? ' · ' + pending.fabric : '') + (pending.sheets ? ' · ' + pending.sheets + '장' : '') + ' · ' + startHM() + ' 부터';
-    $('fnHelpers').hidden = !cut; $('fnStep').hidden = !cut; if(cut){ helperSel = []; renderHelpers(); }
+    $('fnHelpers').hidden = false; helperSel = []; renderHelpers();
     $('cfMemo').value = ''; show('s-final');
   }
-  $('btnFinalStart').onclick = () => { if(pending.proc === CUT){ pending.helpers = helperSel.filter(h => h !== me); }
-    pending.memo = $('cfMemo').value.trim(); startNow(); };
-  $('btnFinalBack').onclick = () => show(pending.proc === CUT ? 's-sheetsIn' : 's-confirm');
+  $('btnFinalStart').onclick = () => { pending.helpers = helperSel.filter(h => h !== me); pending.memo = $('cfMemo').value.trim(); startNow(); };
+  $('btnFinalBack').onclick = () => show('s-sheetsIn');
 
   function startNow(){
     if(offToday()){ toast('오늘은 쉬는 날(' + offToday() + ')이라 등록할 수 없어요', 2600); show('s-home'); return; }
@@ -585,12 +589,39 @@
   function doStart(prevSheets){
     const { product, proc, sheets, fabric, memo } = pending; const helpers = pending.helpers || [];
     const start = startHM(); const obj = { type:'start', date: today(), product, proc: proc || '', sheets: sheets || '', fabric: fabric || '', memo: memo || '', start, prevSheets: prevSheets == null ? null : prevSheets, helpers };
+    let prevEndBefore = null;   // 되돌리기용: 이번 시작으로 닫힌 앞 기록의 원래 종료(열려 있었으니 '')
     send(obj, () => {
-      day.logs.forEach(l => { if(!l.end){ let e = toHM(snapEnd(toMin(start))); if(toMin(e) < toMin(l.start)) e = l.start; l.end = e; if(prevSheets != null) l.sheets = prevSheets; } });
+      day.logs.forEach(l => { if(!l.end){ prevEndBefore = ''; let e = toHM(snapEnd(toMin(start))); if(toMin(e) < toMin(l.start)) e = l.start; l.end = e; if(prevSheets != null) l.sheets = prevSheets; } });
       day.logs.push({ date: today(), who: me, product, proc: proc || '', sheets: sheets || '', fabric: fabric || '', memo: memo || '', start, end: '' });
     });
-    show('s-home'); flashDone(product + (multiProc() && proc ? ' ' + proc : '') + (fabric ? ' ' + fabric : '') + (sheets ? ' ' + sheets + '장' : '') + ' 시작', start + ' 부터' + (helpers.length ? ' · 시다 ' + helpers.length + '명 함께' : ''));
+    const label = product + (multiProc() && proc ? ' ' + proc : '') + (fabric ? ' ' + fabric : '') + (sheets ? ' ' + sheets + '장' : '');
+    show('s-home'); flashDone(label + ' 시작', start + ' 부터' + (helpers.length ? ' · 시다 ' + helpers.length + '명 함께' : ''));
+    if(proc !== CUT) showUndo(label, { obj, product, start, prevEndBefore });   // 연단은 같이 하는 분 기록까지 생기므로 되돌리기 없음 (기록의 '수정'에서 지움)
   }
+
+  // ============ 방금 시작한 것 되돌리기: 잘못 눌렀을 때 몇 초 안에 한 번 더 누르면 없던 일로
+  function showUndo(label, rec){
+    undo = rec; let n = 7;   // ✓ 화면 1초 + 6초
+    $('undoText').textContent = label + ' 시작했어요'; $('undoN').textContent = '6'; $('undoBar').hidden = false; document.body.classList.add('undo-on');
+    clearInterval(undoTimer); undoTimer = setInterval(() => { n--; $('undoN').textContent = String(Math.min(n, 6)); if(n <= 0) hideUndo(); }, 1000);
+  }
+  function hideUndo(){ clearInterval(undoTimer); undoTimer = null; $('undoBar').hidden = true; document.body.classList.remove('undo-on'); undo = null; }
+  $('btnUndo').onclick = async () => {
+    const u = undo; hideUndo(); if(!u) return;
+    if(inflight){ setSync('저장 중…'); try{ await inflight; }catch(e){} }   // 방금 보낸 시작이 서버에 닿을 때까지 기다렸다가 지움
+    ensureToday();
+    let idx = -1; for(let i = day.logs.length - 1; i >= 0; i--){ const l = day.logs[i]; if(l.product === u.product && l.start === u.start){ idx = i; break; } }
+    if(idx < 0){ toast('되돌릴 기록을 찾지 못했어요. 아래 기록의 수정에서 지워 주세요', 2800); return; }
+    const l = day.logs[idx];
+    const revert = () => { const prev = day.logs[idx - 1]; if(prev && u.prevEndBefore !== null && linked(prev.end, l.start)) prev.end = u.prevEndBefore; day.logs.splice(idx, 1); };
+    const qi = queue.indexOf(u.obj);
+    if(qi >= 0 || !configured()){   // 아직 서버에 못 보냈으면(대기열·시험 모드) 폰에서만 지움
+      if(qi >= 0){ queue.splice(qi, 1); store.set('queue', queue); }
+      revert(); store.set('day', day); renderHome();
+      if(configured()) setSync(queue.length ? '저장 대기 ' + queue.length + '건 (인터넷 연결되면 자동 전송)' : '저장됨 ✓', queue.length > 0);
+    } else send({ type:'delete', date: today(), row: l.row || null, product: l.product, oldStart: l.start }, revert);
+    toast(u.product + ' 시작을 되돌렸어요', 2200);
+  };
 
   // ============ 연단 장수 확인 / 고치기
   let shMode = null, shLog = null, shDigits = '';
@@ -609,10 +640,10 @@
     const l = shLog; send({ type:'sheets', date: today(), row: l.row || null, product: l.product, oldStart: l.start, sheets: n }, () => { l.sheets = n; });
     toast('연단 장수를 ' + n + '장으로 고쳤어요'); show('s-home');
   };
-  $('btnShBack').onclick = () => show(shMode==='start' ? 's-final' : 's-edit');
+  $('btnShBack').onclick = () => { if(shMode !== 'start') show('s-edit'); else if(stack.length) history.back(); else show('s-home'); };   // 시작 중이면 직전 화면(제품·공정)으로
   // ============ 끝내기 (사무직이 현장 일을 마치고 돌아갈 때)
   $('btnStop').onclick = () => {
-    ensureToday(); const cur = day.logs.find(l => !l.end); if(!cur) return;
+    hideUndo(); ensureToday(); const cur = day.logs.find(l => !l.end); if(!cur) return;
     let at = toHM(snapEnd(toMin(nowHM()))); if(toMin(at) < toMin(cur.start)) at = cur.start;
     const prod = cur.product;
     send({ type:'stop', date: today(), at }, () => { cur.end = at; });
@@ -723,13 +754,15 @@
     if(mine.length){ mine.forEach(c=>{ const r=document.createElement('div'); r.className='row'; r.innerHTML=`<span class="t">${c.qty}개</span><span class="p">${c.product}<small>${c.who}</small></span>`; list.appendChild(r); }); }
     else list.innerHTML='<div class="row"><span class="t">오늘</span><span class="p" style="color:var(--ink-2)">아직 적은 개수 없음</span></div>';
   }
-  function openCount(it){ countProduct=it; $('ctName').textContent=it; const ex = day.counts.find(c=>c.product===it && kindOf(c)===countKind()); $('qty').value = ex? ex.qty : 0; show('s-count2'); }
+  // 개수는 앱 숫자판으로 (폰 키보드가 뜨지 않음). 이미 적힌 개수가 있으면 보여 주되, 숫자를 누르면 새로 씀
+  let ctDigits = '', ctFresh = false;
+  const ctRender = () => { $('ctVal').textContent = (ctDigits || '0') + ' 개'; };
+  function openCount(it){ countProduct=it; $('ctName').textContent=it; const ex = day.counts.find(c=>c.product===it && kindOf(c)===countKind());
+    ctDigits = ex && ex.qty ? String(ex.qty) : ''; ctFresh = !!ctDigits; ctRender(); show('s-count2'); }
   $('btnCetcNext').onclick = () => { const t=$('cetcText').value.trim(); if(!t){ toast('제품 이름을 적어 주세요'); return; } openCount(t); };
-  const bump = d => { const i=$('qty'); i.value = Math.max(0, (parseInt(i.value,10)||0) + d); };
-  $('qMinus').onclick=()=>bump(-1); $('qPlus').onclick=()=>bump(1);
-  document.querySelectorAll('.qty10 .btn').forEach(b => b.onclick=()=>bump(parseInt(b.dataset.d,10)));
+  makePad($('ctPad'), k => { if(ctFresh){ if(/\d/.test(k)) ctDigits = ''; ctFresh = false; } ctDigits = pressDigits(ctDigits, k, 4).replace(/^0+(?=\d)/, ''); ctRender(); });
   $('btnSaveCount').onclick = () => {
-    const q = Math.max(0, parseInt($('qty').value,10)||0); const prod = countProduct, kind = countKind();
+    const q = Math.max(0, parseInt(ctDigits,10)||0); const prod = countProduct, kind = countKind();
     send({ type:'count', date: today(), product: prod, qty: q, kind }, () => {
       const ex = day.counts.find(c=>c.product===prod && kindOf(c)===kind); if(ex){ ex.qty=q; ex.who=me; } else day.counts.push({ date: today(), product: prod, qty: q, who: me, kind });
     });
@@ -745,16 +778,39 @@
     if(day.counts.length){ h += '<tr><th colspan="6">오늘 포장 끝난 개수</th></tr>'; day.counts.forEach(c => h += `<tr><td>${c.who}</td><td>${c.product}</td><td colspan="4">${c.qty}개</td></tr>`); }
     $('allTable').innerHTML = h;
   }
+  // ============ 화면: 진행 상황 — 지금 누가 뭐 하는지 (차장님·실장님). 안 누른 분이 빨갛게 맨 위로
+  function renderStatus(){
+    ensureToday(); const all = day.all || []; const now = toMin(nowHM());
+    const late = now >= dayEnd(), early = now < DAY_START, off = offToday();
+    const desc = l => l.product + (l.proc ? ' · ' + l.proc : '') + (l.fabric ? ' ' + l.fabric : '') + (l.sheets ? ' ' + l.sheets + '장' : '');
+    const rows = PEOPLE.map(p => {
+      const name = p[0], mine = all.filter(l => l.who === name), cur = mine.find(l => !l.end), last = mine[mine.length - 1];
+      if(off) return { name, cls: 'idle', d: '', e: '쉬는 날', o: 3 };
+      if(cur && !late) return { name, cls: '', d: desc(cur), e: cur.start + '부터 · ' + elapsedText(cur.start), o: 1 };
+      if(late) return { name, cls: 'idle', d: last ? desc(last) + ' (' + last.start + '~' + (last.end || toHM(dayEnd())) + ')' : '오늘 기록 없음', e: '일과 끝', o: 3 };
+      if(early) return { name, cls: 'idle', d: '', e: '아직 시작 전', o: 3 };
+      const office = p[1] === 'office' || p[1] === 'admin';   // 사무실 분들은 안 눌러도 정상
+      if(office) return { name, cls: 'idle', d: last ? desc(last) + ' · ' + last.end + '까지' : '', e: '사무실', o: 2 };
+      return { name, cls: 'miss', d: last ? desc(last) + ' · ' + last.end + '까지' : '오늘 아직 기록 없음', e: '아직 안 누름', o: 0 };
+    });
+    rows.sort((a, b) => a.o - b.o);
+    const list = $('statusList'); list.innerHTML = '';
+    rows.forEach(r => { const el = document.createElement('div'); el.className = 'st' + (r.cls ? ' ' + r.cls : '');
+      el.innerHTML = `<span class="n">${r.name}</span><span class="e">${r.e}</span>` + (r.d ? `<span class="d">${r.d}</span>` : ''); list.appendChild(el); });
+    $('btnAllTable').hidden = role() !== 'admin'; if(!$('allWrap').hidden) renderAll();
+  }
   async function openAll(){
-    renderAll(); show('s-all');                       // 먼저 폰에 있던 사본을 바로 보여주고
+    renderStatus(); show('s-all');                    // 먼저 폰에 있던 사본을 바로 보여주고
     $('allStatus').textContent = '최신 기록 불러오는 중…';
-    const ok = await refresh(); renderAll();          // 받아오면 조용히 갱신
+    const ok = await refresh(); renderStatus();       // 받아오면 조용히 갱신
     $('allStatus').textContent = ok ? nowHM() + ' 기준' : '불러오지 못했어요. 새로 불러오기를 눌러 주세요';
   }
   $('btnReloadAll').onclick = openAll;
+  $('btnAllTable').onclick = () => { const w = $('allWrap'); w.hidden = !w.hidden; $('btnAllTable').textContent = w.hidden ? '오늘 전체 기록 표 보기' : '표 닫기';
+    if(!w.hidden){ renderAll(); w.scrollIntoView({ behavior: 'smooth', block: 'start' }); } };
 
   // ============ 이동·시계·시작
-  Object.assign(renderers, { 's-home': renderHome, 's-pick': renderPick, 's-count': renderCount, 's-all': renderAll });
+  Object.assign(renderers, { 's-home': renderHome, 's-pick': renderPick, 's-count': renderCount, 's-all': renderStatus });
   $('btnChange').onclick = () => { renderPick(); show('s-pick'); };
   $('btnCount').onclick = () => { renderCount(); show('s-count'); };
   $('btnAll').onclick = openAll;
