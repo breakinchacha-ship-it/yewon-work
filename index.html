@@ -55,6 +55,7 @@
   .grid .btn{flex-direction:column;min-width:0}
   .grid .btn .m{display:block;max-width:100%}
   .grid .btn small{display:block;font-size:.85rem;font-weight:700;color:var(--stop);margin-top:4px;line-height:1.1}
+  .grid .btn.long{font-size:1.1rem;padding-left:6px;padding-right:6px}
   .grp{font-size:1.05rem;font-weight:900;color:var(--ink-2);margin:6px 0 10px;padding-top:12px;border-top:4px solid var(--line)}
   .grp:first-of-type{border-top:0;padding-top:0}
   .ask{background:var(--card);border-radius:18px;padding:22px 20px;margin-bottom:16px;border:3px solid var(--line)}
@@ -299,7 +300,7 @@
 (function(){
   // ============ 설정: 구글 시트 웹 앱 주소 (배포 후 나온 /exec 주소를 따옴표 안에 붙여넣기)
   const SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbz_bdMhHIwyGthi9aaUJ4Ba1nd5SZNKKh5jDWjJnwQDE4sVHRTD6Vqpx-kX-xqLg-Cj/exec';
-  const APP_VERSION = '2.4.1';
+  const APP_VERSION = '2.4.4';
 
   // ============ 기준 데이터
   // [이름, 역할, 할 수 있는 공정]  역할: count=포장 개수 입력, office=끝내기 버튼, admin=전체 기록
@@ -317,7 +318,7 @@
     ['김인숙 여사님','',['봉제']],
     ['전계진 실장님','admin',['시다','포장']],
   ];
-  const PROC_ORDER = ['연단','재단','봉제','시다','꺾기','프레스','포장'];
+  const PROC_ORDER = ['연단','재단','봉제','시다','꺾기','프레스','면모부착','포장'];
   // 연단할 때 고르는 원단 (제품별). 없는 제품은 직접 입력.
   const FABRICS = {
     '수의': ['목화원단','광목원단','삼베원단','인견원단'], '수시이불세트': ['목화원단','겨자원단'], '황금이불': ['목화원단','황금쟈가드'],
@@ -329,7 +330,9 @@
   const HELPERS = ['김명숙 차장님','김민호 주임님','신미숙 여사님','전계진 실장님'];   // 연단(나라시) 같이 하는 분들
   const CUT = '연단';
   const NO_CUT = ['황금이불매트세트'];   // 연단·재단 버튼을 보이지 않을 제품
-  const NO_PROC = { '위생매트': ['포장'] };            // 제품별로 빼는 공정 (위생매트 포장은 세트로 함)
+  const NO_PROC = {};                                   // 제품별로 빼는 공정 (지금은 없음)
+  // 운구매트 = 위생매트 + 면모 부착. 위생매트 버튼 안에 '면모부착' 공정을 두어(봉제하는 분에게만 보임) 원가 계산 때 운구매트 몫으로 뗌
+  const EXTRA_PROC = { '위생매트': { procs: ['면모부착'], ifAny: ['봉제'] } };
   const SUBTITLE = { '황금이불매트세트': '포장만', '위생매트': '(운구매트)' };   // 제품 버튼 아래에 붙는 안내
   // 고깔은 시다 대신 꺾기·프레스. 정리정돈·기타(직접입력)는 공정 없음.
   function procsFor(product){
@@ -338,6 +341,7 @@
     let list = p[2].slice();
     if(NO_CUT.includes(product)) list = list.filter(x => x !== '연단' && x !== '재단');   // 연단·재단이 없는 제품
     if(NO_PROC[product]) list = list.filter(x => !NO_PROC[product].includes(x));
+    const ex = EXTRA_PROC[product]; if(ex && ex.ifAny.some(x => list.includes(x))) list = list.concat(ex.procs);
     if(product === '고깔' && list.includes('시다')) list = list.filter(x => x !== '시다').concat(['꺾기','프레스']);
     return PROC_ORDER.filter(x => list.includes(x));
   }
@@ -380,6 +384,7 @@
 
   // ============ 유틸
   const $ = id => document.getElementById(id);
+  const isLong = t => String(t).replace(/[^가-힣A-Za-z0-9]/g, '').length >= 7;   // 글자가 많은 이름은 버튼 글씨를 조금 줄임 (황금이불매트세트)
   const pad = n => String(n).padStart(2,'0');
   const today = () => { const d = new Date(); return d.getFullYear()+'-'+pad(d.getMonth()+1)+'-'+pad(d.getDate()); };
   const nowHM = () => { const d = new Date(); return pad(d.getHours())+':'+pad(d.getMinutes()); };
@@ -515,7 +520,7 @@
       if(!items.length) return;
       const h=document.createElement('div'); h.className='grp'; h.textContent=name; g.appendChild(h);
       const grid=document.createElement('div'); grid.className='grid';
-      items.forEach(it => { const b=document.createElement('button'); b.className='btn';
+      items.forEach(it => { const b=document.createElement('button'); b.className='btn' + (isLong(it) ? ' long' : '');
         const m=document.createElement('span'); m.className='m'; m.textContent=it; b.appendChild(m);
         if(SUBTITLE[it]){ const sm=document.createElement('small'); sm.textContent=SUBTITLE[it]; b.appendChild(sm); }
         b.onclick=()=>{ if(it==='기타(직접입력)'){ $('etcText').value=''; show('s-etc'); setTimeout(()=>$('etcText').focus(),50); } else prepare(it); };
@@ -722,7 +727,7 @@
     const g = $('ceProductGrid'); g.innerHTML = '';
     const items = PRODUCTS.concat(NON_PRODUCT.filter(x => x !== '기타(직접입력)'));
     if(!items.includes(ce.product)) items.unshift(ce.product);   // 기타로 적은 이름은 그대로 두고 고를 수 있게
-    items.forEach(p => { const b = document.createElement('button'); b.className = 'btn' + (p===ce.product ? ' sel' : ''); b.textContent = p;
+    items.forEach(p => { const b = document.createElement('button'); b.className = 'btn' + (p===ce.product ? ' sel' : '') + (isLong(p) ? ' long' : ''); b.textContent = p;
       b.onclick = () => { ce.product = p; [...g.children].forEach(x => x.classList.toggle('sel', x === b)); ceRenderProcs(); }; g.appendChild(b); });
     ceRenderProcs(); $('ceMemo').value = l.memo || ''; show('s-content'); };
   $('btnCeSave').onclick = () => {
@@ -747,7 +752,7 @@
   function renderCount(){
     const kind = countKind(); $('countTitle').textContent = '오늘 ' + kind + ' 끝난 개수'; $('ctKind').textContent = '오늘 ' + kind + ' 끝난 개수';
     const g=$('countGrid'); g.innerHTML=''; const grid=document.createElement('div'); grid.className='grid';
-    COUNT_PRODUCTS.forEach(it => { const b=document.createElement('button'); b.className='btn'; b.textContent=it; b.onclick=()=>openCount(it); grid.appendChild(b); });
+    COUNT_PRODUCTS.forEach(it => { const b=document.createElement('button'); b.className='btn' + (isLong(it) ? ' long' : ''); b.textContent=it; b.onclick=()=>openCount(it); grid.appendChild(b); });
     const etc=document.createElement('button'); etc.className='btn'; etc.textContent='기타(직접입력)'; etc.onclick=()=>{ $('cetcText').value=''; show('s-cetc'); setTimeout(()=>$('cetcText').focus(),50); }; grid.appendChild(etc);
     g.appendChild(grid);
     const list=$('countList'); list.innerHTML=''; const mine = day.counts.filter(c => kindOf(c)===kind);
