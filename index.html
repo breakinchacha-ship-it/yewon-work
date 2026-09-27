@@ -300,7 +300,7 @@
 (function(){
   // ============ 설정: 구글 시트 웹 앱 주소 (배포 후 나온 /exec 주소를 따옴표 안에 붙여넣기)
   const SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbz_bdMhHIwyGthi9aaUJ4Ba1nd5SZNKKh5jDWjJnwQDE4sVHRTD6Vqpx-kX-xqLg-Cj/exec';
-  const APP_VERSION = '2.4.4';
+  const APP_VERSION = '2.4.5';
 
   // ============ 기준 데이터
   // [이름, 역할, 할 수 있는 공정]  역할: count=포장 개수 입력, office=끝내기 버튼, admin=전체 기록
@@ -450,13 +450,24 @@
     }
   }
   // 대기열 전송
+  // 서버가 '안 된다'고 답한 건(쉬는 날·일과 종료 등)은 3번 시도 후 대기열에서 빼고 이유를 보여 줌 (영원히 남지 않게)
+  function dropItem(item, why){
+    const dropped = store.get('dropped', []); dropped.push({ ...item, why, at: today() + ' ' + nowHM() }); store.set('dropped', dropped.slice(-20));
+    toast('올라가지 못한 기록 1건을 뺐어요 (' + (item.product || item.type) + (item.start ? ' ' + item.start : '') + ' · ' + why + ')', 5000);
+  }
   async function flush(){
-    if(sending || !queue.length || !navigator.onLine) return; sending = true;
+    if(sending || !queue.length) return; sending = true;
+    let net = false;
     try{
-      while(queue.length){ const item = queue[0]; const data = await apiPost(item); if(!data || !data.ok) throw new Error(data && data.error || 'fail');
+      while(queue.length){ const item = queue[0]; let data;
+        try{ data = await apiPost(item); }catch(e){ net = true; throw e; }            // 인터넷 문제 → 다음에 다시
+        if(!data || !data.ok){                                                     // 서버가 거절
+          item._tries = (item._tries || 0) + 1;
+          if(item._tries < 3){ store.set('queue', queue); throw new Error(data && data.error || 'fail'); }
+          queue.shift(); store.set('queue', queue); dropItem(item, (data && data.error) || '서버 거절'); continue; }
         queue.shift(); store.set('queue', queue); applyServer(data); }
-      setSync('저장됨 ✓'); if($('s-home').classList.contains('on')) renderHome();
-    }catch(e){ setSync('저장 대기 ' + queue.length + '건 (인터넷 연결되면 자동 전송)', true); }
+      setSync('저장됨 ✓'); await refresh(); if($('s-home').classList.contains('on')) renderHome();
+    }catch(e){ setSync('저장 대기 ' + queue.length + '건 (' + (net ? '인터넷 연결되면 자동 전송' : '다시 보내는 중') + ')', true); }
     finally{ sending = false; }
   }
   async function refresh(){
@@ -471,8 +482,13 @@
     ensureToday(); localApply(); store.set('day', day); renderHome();
     if(!configured()) return;
     const p = (async () => {
-      try{ setSync('저장 중…'); const data = await apiPost(obj); if(!data || !data.ok) throw new Error(data && data.error || 'fail');
-        applyServer(data); renderHome(); setSync('저장됨 ✓'); }
+      let data;
+      try{ setSync('저장 중…'); data = await apiPost(obj); }
+      catch(e){ data = null; }
+      if(data && data.ok){ applyServer(data); renderHome(); setSync('저장됨 ✓'); return; }
+      if(data && data.error && !/^(Exception|Error|TypeError|ReferenceError)|Lock|timed out|시간/i.test(data.error)){   // 서버가 규칙상 거절 → 대기열에 넣지 않고 서버 기록으로 맞춤
+        toast('저장 안 됨: ' + data.error, 4000); try{ applyServer(await apiGet(wantAll())); }catch(e){} renderHome(); setSync('저장됨 ✓'); return; }
+      try{ throw new Error('fail'); }
       catch(e){ queue.push(obj); store.set('queue', queue); setSync('저장 대기 ' + queue.length + '건 (인터넷 연결되면 자동 전송)', true);
         toast('인터넷이 안 돼서 폰에 저장했어요. 연결되면 자동으로 올라갑니다', 2600); }
     })();
