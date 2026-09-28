@@ -229,7 +229,8 @@
 
   <section class="screen" id="s-etc">
     <h1>무슨 일인지 적어 주세요</h1>
-    <input type="text" id="etcText" placeholder="예: 원단 정리" autocomplete="off">
+    <p class="hint warn" style="text-align:left">버튼에 없는 일만 적어 주세요.</p>
+    <input type="text" id="etcText" placeholder="" autocomplete="off">
     <div style="height:14px"></div>
     <button class="btn btn-go" id="btnEtcNext">다음</button>
     <button class="btn btn-back" data-go="s-pick">돌아가기</button>
@@ -244,7 +245,8 @@
   </section>
   <section class="screen" id="s-cetc">
     <h1>제품 이름을 적어 주세요</h1>
-    <input type="text" id="cetcText" placeholder="예: 삼베꽃신" autocomplete="off">
+    <p class="hint warn" style="text-align:left">버튼에 없는 제품만 적어 주세요.</p>
+    <input type="text" id="cetcText" placeholder="" autocomplete="off">
     <div style="height:14px"></div>
     <button class="btn btn-go" id="btnCetcNext">다음</button>
     <button class="btn btn-back" data-go="s-count">돌아가기</button>
@@ -300,7 +302,7 @@
 (function(){
   // ============ 설정: 구글 시트 웹 앱 주소 (배포 후 나온 /exec 주소를 따옴표 안에 붙여넣기)
   const SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbz_bdMhHIwyGthi9aaUJ4Ba1nd5SZNKKh5jDWjJnwQDE4sVHRTD6Vqpx-kX-xqLg-Cj/exec';
-  const APP_VERSION = '2.4.5';
+  const APP_VERSION = '2.4.7';
 
   // ============ 기준 데이터
   // [이름, 역할, 할 수 있는 공정]  역할: count=포장 개수 입력, office=끝내기 버튼, admin=전체 기록
@@ -346,6 +348,7 @@
     return PROC_ORDER.filter(x => list.includes(x));
   }
   const multiProc = () => { const p = person(); return !!(p && p[2].length > 1); };
+  const showProc = product => multiProc() || procsFor(product).length > 1;   // 봉제만 하는 분도 위생매트(봉제/면모부착)는 공정을 보여 줌
   const isCutter = () => { const p = person(); return !!(p && p[2].includes(CUT)); };
   const GROUPS = [
     ['자주 만드는 제품', ['수의','수시이불세트','황금이불','위생매트','황금이불매트세트','용안위생포','염보']],
@@ -509,7 +512,7 @@
     const mine = viewLogs();
     const cur = mine.find(l => !l.end);
     const card = $('nowCard');
-    const tag = l => (multiProc() && l.proc ? ' · ' + l.proc : '') + (l.fabric ? ' ' + l.fabric : '') + (l.sheets ? ' ' + l.sheets + '장' : '');
+    const tag = l => (l.proc && showProc(l.product) ? ' · ' + l.proc : '') + (l.fabric ? ' ' + l.fabric : '') + (l.sheets ? ' ' + l.sheets + '장' : '');
     const off = offToday();
     if(cur){ card.className='now'; card.innerHTML = `<div class="lbl">지금 하는 일</div><div class="name">${cur.product}${tag(cur)}</div><div class="since">${cur.start}부터 · <b id="elapsed" data-start="${cur.start}">${elapsedText(cur.start)}</b></div>`; }
     else if(off){ card.className='now empty'; card.innerHTML = `<div class="lbl">오늘</div><div class="name">쉬는 날이에요 (${off})</div>`; }
@@ -615,7 +618,7 @@
       day.logs.forEach(l => { if(!l.end){ prevEndBefore = ''; let e = toHM(snapEnd(toMin(start))); if(toMin(e) < toMin(l.start)) e = l.start; l.end = e; if(prevSheets != null) l.sheets = prevSheets; } });
       day.logs.push({ date: today(), who: me, product, proc: proc || '', sheets: sheets || '', fabric: fabric || '', memo: memo || '', start, end: '' });
     });
-    const label = product + (multiProc() && proc ? ' ' + proc : '') + (fabric ? ' ' + fabric : '') + (sheets ? ' ' + sheets + '장' : '');
+    const label = product + (proc && showProc(product) ? ' ' + proc : '') + (fabric ? ' ' + fabric : '') + (sheets ? ' ' + sheets + '장' : '');
     show('s-home'); flashDone(label + ' 시작', start + ' 부터' + (helpers.length ? ' · 시다 ' + helpers.length + '명 함께' : ''));
     if(proc !== CUT) showUndo(label, { obj, product, start, prevEndBefore });   // 연단은 같이 하는 분 기록까지 생기므로 되돌리기 없음 (기록의 '수정'에서 지움)
   }
@@ -686,7 +689,7 @@
   function openEdit(i){ ensureToday(); edIdx = i; const l = day.logs[i]; if(!l) return;
     $('edName').textContent = l.product + (l.proc ? ' · ' + l.proc : '');
     $('edSub').textContent = l.start + ' ~ ' + (l.end || '지금') + (l.fabric ? ' · ' + l.fabric : '') + (l.sheets ? ' · ' + l.sheets + '장' : '') + (l.memo ? ' · 메모: ' + l.memo : '');
-    $('btnEdSheets').hidden = !l.sheets; $('btnEdContent').hidden = !(isCutter() || role()==='admin');
+    $('btnEdSheets').hidden = !l.sheets; $('btnEdContent').hidden = false;   // 누구나 (제품·공정은 정해진 목록에서만 고름)
     show('s-edit'); }
   $('btnEdTime').onclick = () => { const l = day.logs[edIdx]; if(!l) return; edField = 'start'; edD = { start: '', end: '' };
     $('etName').textContent = l.product + (l.proc ? ' · ' + l.proc : ''); edRender(); show('s-edtime'); };
