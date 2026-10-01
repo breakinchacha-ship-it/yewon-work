@@ -113,11 +113,26 @@
   .st.miss{background:#FBE9E7}
   .st.miss .e{color:var(--stop);font-weight:900}
   .st.idle{opacity:.6}
+  .edhint{background:#E8EEF6;border:3px solid var(--navy);border-radius:14px;color:var(--navy);font-size:1.15rem;font-weight:900;padding:12px 14px;margin:0 0 10px;text-align:center;word-break:keep-all;line-height:1.5}
+  .edhint .chip{display:inline-block;background:var(--card);border:2px solid var(--line);border-radius:10px;color:var(--ink-2);font-size:1rem;padding:2px 10px;margin:0 2px;vertical-align:1px}
+  /* 공지 (시트 '공지' 탭 A2). [확인] 누르면 그 폰에서는 같은 공지가 다시 안 뜸 */
+  .notice{background:#FFF4D6;border:3px solid var(--mustard);border-radius:16px;padding:14px 16px;margin-bottom:14px}
+  .notice .nl{font-size:.95rem;font-weight:900;color:var(--ink-2);margin-bottom:4px}
+  .notice .nt{font-size:1.2rem;font-weight:700;white-space:pre-line;word-break:keep-all;margin-bottom:12px}
+  .notice .btn{background:var(--mustard);color:var(--mustard-ink);font-size:1.2rem;padding:12px}
+  button.st{width:100%;background:none;border:0;border-top:2px solid var(--line);font:inherit;color:inherit;text-align:left;cursor:pointer;-webkit-tap-highlight-color:transparent}
+  button.st:first-child{border-top:0}
+  button.st.miss{background:#FBE9E7}
+  button.st:active{filter:brightness(.9)}
+  .st .n i{font-style:normal;color:var(--ink-2);font-weight:700;margin-left:4px}
+  .acting{position:sticky;top:0;z-index:12;display:flex;justify-content:space-between;align-items:center;gap:10px;background:var(--stop);color:#fff;font-weight:900;font-size:1.05rem;padding:10px 12px 10px 16px;margin:-16px -14px 14px;word-break:keep-all}
+  .acting button{background:#fff;color:var(--stop);border:0;border-radius:12px;font:inherit;font-weight:900;font-size:1rem;padding:10px 14px;white-space:nowrap;flex:none}
   @media (prefers-reduced-motion: reduce){ .btn:active{transform:none} .toast{transition:none} }
 </style>
 </head>
 <body>
 <div class="app">
+  <div class="acting" id="actBar" hidden><span id="actText"></span><button id="btnActExit">내 화면으로</button></div>
 
   <section class="screen" id="s-name">
     <h1>내 이름을 눌러 주세요</h1>
@@ -131,12 +146,14 @@
       <span class="clock" id="clock"></span>
     </div>
     <div class="sync" id="sync"></div>
+    <div class="notice" id="notice" hidden><div class="nl">공지</div><div class="nt" id="noticeText"></div><button class="btn" id="btnNoticeOk">확인</button></div>
     <div class="now" id="nowCard"></div>
     <button class="btn btn-main" id="btnChange">다른 일 시작하기</button>
     <p class="hint warn">번거롭더라도 정확도를 위해서<br>일이 바뀔 때마다 꼭 눌러 주세요.</p>
     <button class="btn btn-stop" id="btnStop" hidden>지금 하는 일 끝내기</button>
     <button class="btn btn-sub" id="btnCount" hidden>포장 끝난 개수 적기</button>
     <button class="btn btn-sub" id="btnAll" hidden>진행 상황 보기</button>
+    <p class="edhint" id="editHint">시간이 틀렸으면 <span class="chip">수정</span>을 눌러<br>고칠 수 있습니다~!</p>
     <div class="list" id="todayList"></div>
     <div class="top"><span></span><button id="btnRename">이름 바꾸기</button></div>
   </section>
@@ -286,6 +303,7 @@
   <section class="screen" id="s-all">
     <h1>진행 상황</h1>
     <p class="hint" id="allStatus"></p>
+    <p class="hint">이름을 누르면 그분 화면에서 대신 누를 수 있어요.</p>
     <div class="list" id="statusList"></div>
     <button class="btn btn-sub" id="btnReloadAll">새로 불러오기</button>
     <button class="btn btn-sub" id="btnAllTable" hidden>오늘 전체 기록 표 보기</button>
@@ -302,7 +320,7 @@
 (function(){
   // ============ 설정: 구글 시트 웹 앱 주소 (배포 후 나온 /exec 주소를 따옴표 안에 붙여넣기)
   const SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbz_bdMhHIwyGthi9aaUJ4Ba1nd5SZNKKh5jDWjJnwQDE4sVHRTD6Vqpx-kX-xqLg-Cj/exec';
-  const APP_VERSION = '2.4.7';
+  const APP_VERSION = '2.5.2';
 
   // ============ 기준 데이터
   // [이름, 역할, 할 수 있는 공정]  역할: count=포장 개수 입력, office=끝내기 버튼, admin=전체 기록
@@ -376,8 +394,10 @@
   // ============ 저장소 (폰 안: 이름·오늘 기록 사본·전송 대기)
   const store = {
     get(k, d){ try{ const v = localStorage.getItem(k); return v ? JSON.parse(v) : d; }catch(e){ return d; } },
-    set(k, v){ try{ localStorage.setItem(k, JSON.stringify(v)); }catch(e){} },
+    set(k, v){ if(actingFrom && k === 'day') k = 'day_act';   // 대신 보는 중에는 내 기록 사본을 건드리지 않음
+      try{ localStorage.setItem(k, JSON.stringify(v)); }catch(e){} },
   };
+  let actingFrom = null;   // 진행 상황에서 다른 분 화면에 들어가 있으면 원래 내 이름 (me 는 그분 이름)
   let me = store.get('me', null); if(me && !PEOPLE.some(p => p[0]===me)) me = null;   // 이름 표기가 바뀌면 다시 고르게
   let device = store.get('device', null); if(!device){ device = 'd' + Math.random().toString(36).slice(2,8); store.set('device', device); }
   let day = store.get('day', { date: '', logs: [], counts: [] });  // 서버에서 받은 오늘 기록 사본
@@ -398,7 +418,7 @@
   const renderers = {};   // 화면별 다시 그리기 (아래에서 채움)
   function show(id, fromBack){
     if(!fromBack && curScreen && curScreen !== id){
-      if(id === 's-home') stack.length = 0;
+      if(id === 's-home'){ stack.length = 0; if(actingFrom) stack.push('s-all'); }   // 대신 보는 중: 뒤로가기 → 진행 상황
       else { const i = stack.lastIndexOf(id); if(i >= 0) stack.length = i; else stack.push(curScreen); }
     }
     document.querySelectorAll('.screen').forEach(s=>s.classList.remove('on')); $(id).classList.add('on'); window.scrollTo(0,0); curScreen = id;
@@ -410,11 +430,11 @@
   try{ history.replaceState({ root: true }, ''); }catch(e){}
   window.addEventListener('popstate', () => {
     if(!stack.length) return;                       // 홈: 브라우저가 알아서 나감
-    const prev = stack.pop(); if(renderers[prev]) renderers[prev](); show(prev, true);
+    const prev = stack.pop(); if(prev === 's-all' && actingFrom) exitActing(true); if(renderers[prev]) renderers[prev](); show(prev, true);
   });
   function toast(t, ms){ const el=$('toast'); el.textContent=t; el.classList.add('show'); clearTimeout(el._t); el._t=setTimeout(()=>el.classList.remove('show'), ms||1800); }
   const person = () => PEOPLE.find(p => p[0] === me);
-  const role = () => { const p = person(); return p ? (p[1] || '') : ''; };
+  const role = () => { const p = PEOPLE.find(x => x[0] === (actingFrom || me)); return p ? (p[1] || '') : ''; };   // 역할은 폰 주인 기준
   const wantAll = () => role() === 'admin' || role() === 'count';   // 남들 기록도 받아오는 사람 (진행 상황 화면)
   const startHM = () => toHM(snapStart(toMin(nowHM())));
   const elapsedText = start => { const m = Math.max(0, toMin(nowHM()) - toMin(start)); return m < 1 ? '방금' : (m >= 60 ? Math.floor(m/60) + '시간 ' : '') + (m % 60) + '분째'; };
@@ -431,7 +451,7 @@
   function setSync(t, bad){ const el=$('sync'); el.textContent = t || ''; el.className = 'sync' + (bad ? ' bad' : ''); }
   function applyServer(data){
     if(!data || !data.ok) return false;
-    day = { date: data.date, logs: (data.logs||[]).filter(l => l.who === me), counts: data.counts || [], off: data.off || '', offKnown: true, dayEnd: data.dayEnd || '' };
+    day = { date: data.date, logs: (data.logs||[]).filter(l => l.who === me), counts: data.counts || [], off: data.off || '', offKnown: true, dayEnd: data.dayEnd || '', notice: String(data.notice || '').trim() };
     if(wantAll()) day.all = data.logs || [];
     store.set('day', day); return true;
   }
@@ -440,9 +460,10 @@
     const u = SCRIPT_URL + '?who=' + encodeURIComponent(me) + '&date=' + today() + (all ? '&all=1' : '') + '&v=' + Date.now();
     const r = await fetch(u, { method:'GET', redirect:'follow' }); return r.json();
   }
+  const devTag = () => actingFrom ? device + ' · ' + actingFrom + ' 대신' : device;
   async function apiPost(obj){
     if(!configured()) throw new Error('not configured');
-    const body = JSON.stringify({ ...obj, who: me, device, all: wantAll() });
+    const body = JSON.stringify({ who: me, device: devTag(), ...obj, all: wantAll() });   // 대기열 건은 보낼 때 적어 둔 이름·기기로
     try{
       const r = await fetch(SCRIPT_URL, { method:'POST', redirect:'follow', body });
       return await r.json();
@@ -482,6 +503,7 @@
   // 등록 보내기: 먼저 화면에 반영하고, 서버로 보내고, 실패하면 대기열. 보내는 중인 건은 inflight 에 둠(되돌리기가 기다림)
   let inflight = null;
   async function send(obj, localApply){
+    if(!obj.who) obj.who = me; if(!obj.device) obj.device = devTag();   // 나중에 대기열로 보내도 누구 기록인지 안 바뀌게
     ensureToday(); localApply(); store.set('day', day); renderHome();
     if(!configured()) return;
     const p = (async () => {
@@ -520,9 +542,14 @@
     $('btnChange').textContent = cur ? '다른 일 시작하기' : '시작하기';
     $('btnChange').hidden = !!off && !cur; document.querySelector('.hint.warn').hidden = !!off && !cur;
     const r = role();
-    $('btnStop').hidden = !(cur && (r==='office' || r==='admin'));
-    $('btnCount').hidden = !(r==='count' || r==='admin');
-    $('btnAll').hidden = !wantAll();
+    $('btnStop').hidden = !(cur && (actingFrom || r==='office' || r==='admin'));   // 대신 보는 중에는 끝내기도 가능
+    $('btnCount').hidden = !!actingFrom || !(r==='count' || r==='admin');
+    $('btnAll').hidden = !!actingFrom || !wantAll();
+    $('btnRename').hidden = !!actingFrom;
+    $('actBar').hidden = !actingFrom; if(actingFrom) $('actText').textContent = me + ' 대신 누르는 중';
+    const nt = String(day.notice || '').trim(), showN = !!nt && !actingFrom && store.get('noticeSeen', '') !== nt;
+    $('notice').hidden = !showN; if(showN) $('noticeText').textContent = nt;
+    $('editHint').hidden = !mine.length;
     const list = $('todayList'); list.innerHTML='';
     if(mine.length){ mine.forEach((l, i) => { const row=document.createElement('div'); row.className='row';
       row.innerHTML=`<span class="t">${l.start}~${l.end || '지금'}</span><span class="p">${l.product}${tag(l)}${l.memo ? '<small>메모: ' + l.memo + '</small>' : ''}</span>`;
@@ -619,7 +646,7 @@
       day.logs.push({ date: today(), who: me, product, proc: proc || '', sheets: sheets || '', fabric: fabric || '', memo: memo || '', start, end: '' });
     });
     const label = product + (proc && showProc(product) ? ' ' + proc : '') + (fabric ? ' ' + fabric : '') + (sheets ? ' ' + sheets + '장' : '');
-    show('s-home'); flashDone(label + ' 시작', start + ' 부터' + (helpers.length ? ' · 시다 ' + helpers.length + '명 함께' : ''));
+    show('s-home'); flashDone((actingFrom ? me + ' · ' : '') + label + ' 시작', start + ' 부터' + (helpers.length ? ' · 시다 ' + helpers.length + '명 함께' : ''));
     if(proc !== CUT) showUndo(label, { obj, product, start, prevEndBefore });   // 연단은 같이 하는 분 기록까지 생기므로 되돌리기 없음 (기록의 '수정'에서 지움)
   }
 
@@ -819,10 +846,29 @@
     });
     rows.sort((a, b) => a.o - b.o);
     const list = $('statusList'); list.innerHTML = '';
-    rows.forEach(r => { const el = document.createElement('div'); el.className = 'st' + (r.cls ? ' ' + r.cls : '');
-      el.innerHTML = `<span class="n">${r.name}</span><span class="e">${r.e}</span>` + (r.d ? `<span class="d">${r.d}</span>` : ''); list.appendChild(el); });
+    rows.forEach(r => { const el = document.createElement('button'); el.className = 'st' + (r.cls ? ' ' + r.cls : '');
+      el.innerHTML = `<span class="n">${r.name} <i>›</i></span><span class="e">${r.e}</span>` + (r.d ? `<span class="d">${r.d}</span>` : '');
+      el.onclick = () => openPerson(r.name); list.appendChild(el); });
     $('btnAllTable').hidden = role() !== 'admin'; if(!$('allWrap').hidden) renderAll();
   }
+  // ---- 이름을 누르면 그분 화면으로: 그분 이름으로 시작·수정·지우기·끝내기를 대신 함 (시트 '기기' 칸에 "○○ 대신"이 남음)
+  function openPerson(name){
+    const self = actingFrom || me;
+    if(name === self){ if(actingFrom) exitActing(true); renderHome(); show('s-home'); refresh().then(renderHome); return; }
+    if(!actingFrom) actingFrom = me;
+    const all = day.all || [];
+    me = name; day = { date: today(), logs: all.filter(l => l.who === name), counts: day.counts || [], off: day.off, offKnown: day.offKnown, dayEnd: day.dayEnd, all };
+    hideUndo(); renderHome(); show('s-home'); toast(name + ' 기록으로 들어가요', 2200);
+    refresh().then(() => { if(curScreen === 's-home') renderHome(); });
+  }
+  function exitActing(silent){
+    if(!actingFrom) return;
+    const all = day.all; me = actingFrom; actingFrom = null; hideUndo(); $('actBar').hidden = true;
+    day = store.get('day', { date: '', logs: [], counts: [] }); if(all) day.all = all;
+    if(!silent) toast('내 화면으로 돌아왔어요');
+  }
+  $('btnNoticeOk').onclick = () => { store.set('noticeSeen', String(day.notice || '').trim()); $('notice').hidden = true; };
+  $('btnActExit').onclick = () => { exitActing(); renderStatus(); stack.length = 0; show('s-all'); refresh().then(renderStatus); };
   async function openAll(){
     renderStatus(); show('s-all');                    // 먼저 폰에 있던 사본을 바로 보여주고
     $('allStatus').textContent = '최신 기록 불러오는 중…';
