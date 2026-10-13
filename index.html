@@ -82,7 +82,6 @@
   .done .s{font-size:1.2rem;opacity:.85;margin-top:8px}
   .row{grid-template-columns:auto 1fr auto}
   .row .e{background:var(--card);border:2px solid var(--line);border-radius:10px;font:inherit;font-size:.95rem;font-weight:700;padding:6px 10px;color:var(--ink-2)}
-  .step{display:flex;gap:6px;margin-bottom:12px}.step i{flex:1;height:6px;border-radius:3px;background:var(--line)}.step i.on{background:var(--navy)}
   .tfields{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:12px}
   .tf{background:var(--card);border:3px solid var(--line);border-radius:16px;padding:12px 8px;text-align:center;font:inherit;cursor:pointer}
   .tf.on{border-color:var(--navy);background:#E8EEF6}
@@ -164,7 +163,7 @@
     <button class="btn btn-back" data-go="s-home">돌아가기</button>
   </section>
 
-  <!-- 공정이 둘 이상인 분만 거침: 공정 버튼을 누르면 바로 시작 -->
+  <!-- 위생매트를 봉제하는 분만 거침: 봉제 / 면모부착 (누르면 바로 시작) -->
   <section class="screen" id="s-confirm">
     <div class="ask">
       <div class="big" id="cfName"></div>
@@ -174,83 +173,19 @@
     <button class="btn btn-back" data-go="s-pick">돌아가기</button>
   </section>
 
-  <!-- 연단 1단계: 원단 -->
-  <section class="screen" id="s-fab">
-    <div class="step"><i class="on"></i><i></i><i></i></div>
-    <div class="ask"><div class="big" id="fabName"></div><div class="sm">무슨 원단 연단하시나요?</div></div>
-    <div class="grid" id="fabGrid"></div>
-    <div id="fabTextWrap" hidden>
-      <input type="text" id="fabText" class="memo" placeholder="원단 이름 (안 적어도 돼요)" autocomplete="off">
-      <div style="height:12px"></div>
-      <button class="btn btn-go" id="btnFabNext">다음</button>
-    </div>
-    <button class="btn btn-back" data-go="s-confirm">돌아가기</button>
-  </section>
-
-  <!-- 연단 2단계: 장수 -->
-  <section class="screen" id="s-sheetsIn">
-    <div class="step"><i class="on"></i><i class="on"></i><i></i></div>
-    <div class="ask"><div class="big" id="siName"></div><div class="sm">몇 장을 연단할 예정이신가요?</div><div class="tm-big" id="siVal">__ 장</div></div>
-    <div class="pad" id="siPad"></div>
-    <button class="btn btn-go" id="btnSiNext">다음</button>
-    <button class="btn btn-back" data-go="s-fab">돌아가기</button>
-  </section>
-
-  <!-- 연단 3단계: 같이 하는 분 · 메모 · 시작 -->
-  <section class="screen" id="s-final">
-    <div class="step"><i class="on"></i><i class="on"></i><i class="on"></i></div>
-    <div class="ask"><div class="big" id="fnName"></div><div class="sm" id="fnSub"></div></div>
-    <div id="fnHelpers" hidden>
-      <p class="hint" style="margin-bottom:8px">누구랑 같이 하시나요? (같이 하는 분을 모두 누르세요)</p>
-      <div class="grid" id="cfHelperGrid"></div>
-    </div>
-    <button class="btn btn-go" id="btnFinalStart">네, 지금 시작</button>
-    <p class="lbl2">메모 (필요할 때만)</p>
-    <input type="text" id="cfMemo" class="memo" placeholder="예: 원단 2롤 부족, 겹쳐 깔기" autocomplete="off">
-    <div style="height:12px"></div>
-    <button class="btn btn-back" id="btnFinalBack">돌아가기</button>
-  </section>
-
   <!-- 작업 내용 고치기: 정해진 목록에서만 고름 -->
   <section class="screen" id="s-content">
     <h1>작업 내용 고치기</h1>
     <p class="lbl2">제품</p>
     <div class="grid" id="ceProductGrid"></div>
-    <p class="lbl2">공정</p>
-    <div class="grid" id="ceProcGrid"></div>
-    <div id="ceFabricWrap" hidden>
-      <p class="lbl2">원단</p>
-      <div class="grid" id="ceFabricGrid"></div>
-      <input type="text" id="ceFabricText" class="memo" placeholder="원단 이름" autocomplete="off" hidden>
+    <div id="ceProcWrap" hidden>
+      <p class="lbl2">하신 일</p>
+      <div class="grid" id="ceProcGrid"></div>
     </div>
     <p class="lbl2">메모</p><input type="text" id="ceMemo" class="memo" autocomplete="off">
     <div style="height:14px"></div>
     <button class="btn btn-go" id="btnCeSave">저장</button>
     <button class="btn btn-back" data-go="s-edit">돌아가기</button>
-  </section>
-
-  <section class="screen" id="s-sheets">
-    <div class="ask">
-      <div class="big" id="shName"></div>
-      <div class="sm" id="shQ">시작할 때 적은 장수가 맞으신가요?</div>
-      <div class="tm-big" id="shVal">__ 장</div>
-    </div>
-    <button class="btn btn-go" id="btnShYes">예, 맞아요</button>
-    <button class="btn btn-main" id="btnShNo">아니오, 고칠게요</button>
-    <div id="shEdit" hidden>
-      <div class="pad" id="shPad"></div>
-      <button class="btn btn-go" id="btnShSave">이 장수로 저장</button>
-    </div>
-    <button class="btn btn-back" id="btnShBack">돌아가기</button>
-  </section>
-
-  <section class="screen" id="s-etc">
-    <h1>무슨 일인지 적어 주세요</h1>
-    <p class="hint warn" style="text-align:left">버튼에 없는 일만 적어 주세요.</p>
-    <input type="text" id="etcText" placeholder="" autocomplete="off">
-    <div style="height:14px"></div>
-    <button class="btn btn-go" id="btnEtcNext">다음</button>
-    <button class="btn btn-back" data-go="s-pick">돌아가기</button>
   </section>
 
   <section class="screen" id="s-count">
@@ -282,7 +217,6 @@
   <section class="screen" id="s-edit">
     <div class="ask"><div class="big" id="edName"></div><div class="sm" id="edSub"></div></div>
     <button class="btn btn-sub" id="btnEdTime">시작 · 종료 시각 고치기</button>
-    <button class="btn btn-sub" id="btnEdSheets" hidden>연단 장수 고치기</button>
     <button class="btn btn-sub" id="btnEdContent" hidden>작업 내용 고치기</button>
     <button class="btn btn-stop" id="btnEdDel">이 기록 지우기</button>
     <button class="btn btn-back" data-go="s-home">돌아가기</button>
@@ -320,11 +254,12 @@
 (function(){
   // ============ 설정: 구글 시트 웹 앱 주소 (배포 후 나온 /exec 주소를 따옴표 안에 붙여넣기)
   const SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbz_bdMhHIwyGthi9aaUJ4Ba1nd5SZNKKh5jDWjJnwQDE4sVHRTD6Vqpx-kX-xqLg-Cj/exec';
-  const APP_VERSION = '2.5.3';
+  const APP_VERSION = '2.6.1';
 
   // ============ 기준 데이터
-  // [이름, 역할, 할 수 있는 공정]  역할: count=포장 개수 입력, office=끝내기 버튼, admin=전체 기록
-  // 공정이 하나뿐이면 묻지 않고 자동으로 그 공정으로 기록. 둘 이상이면 제품 다음에 공정을 고름.
+  // [이름, 역할, 하는 일]  역할: count=포장 개수 입력·진행 상황, office=사무실 분(진행 상황에서 '사무실'로 표시), admin=전체 기록
+  // '지금 하는 일 끝내기'는 누구나 (2026-10-13)
+  // 공정은 기록하지 않음(2026-10). '하는 일'은 어떤 제품 버튼이 보일지 정하는 데만 씀 (REQUIRE_PROC, ASK_PROC)
   const PEOPLE = [
     ['김명숙 차장님','count',['봉제','시다','포장']],
     ['김옥순 과장님','',['봉제']],
@@ -337,46 +272,20 @@
     ['신미숙 여사님','',['시다','포장']],
     ['전계진 실장님','admin',['시다','포장']],
   ];
-  const PROC_ORDER = ['연단','재단','봉제','시다','꺾기','프레스','면모부착','포장'];
-  // 연단할 때 고르는 원단 (제품별). 없는 제품은 직접 입력.
-  const FABRICS = {
-    '수의': ['목화원단','광목원단','삼베원단','인견원단'], '수시이불세트': ['목화원단','겨자원단'], '황금이불': ['목화원단','황금쟈가드'],
-    '위생매트': ['트로피칼','방수포'], '염보': ['오렌지원단','엠보원단'], '고깔': ['고깔원단'], '하대': ['목화원단','엠보원단'],
-    '면모': ['목화원단','엠보원단'], '와플관보': ['와플원단','블랙스판원단'], '바디백': ['바디백원단'],
-  };
-  const FORCE_PROC = { '끈 추리기':'시다', '우라접기':'시다', '황금이불매트세트':'포장' };            // 누가 하든 이 공정으로 기록 (고르지 않음)
-  const REQUIRE_PROC = { '우라납바':'봉제', '우라벨크로':'봉제', '매트납바':'봉제', '황금이불매트세트':'포장' };   // 이 공정을 하는 사람에게만 보이는 제품
-  const HELPERS = ['김명숙 차장님','김민호 주임님','신미숙 여사님','전계진 실장님'];   // 연단(나라시) 같이 하는 분들
-  const CUT = '연단';
-  const NO_CUT = ['황금이불매트세트'];   // 연단·재단 버튼을 보이지 않을 제품
-  const NO_PROC = {};                                   // 제품별로 빼는 공정 (지금은 없음)
-  // 운구매트 = 위생매트 + 면모 부착. 위생매트 버튼 안에 '면모부착' 공정을 두어(봉제하는 분에게만 보임) 원가 계산 때 운구매트 몫으로 뗌
-  const EXTRA_PROC = { '위생매트': { procs: ['면모부착'], ifAny: ['봉제'] } };
+  const REQUIRE_PROC = { '우라납바':'봉제', '우라벨크로':'봉제', '매트납바':'봉제', '황금이불매트세트':'포장' };   // 이 일을 하는 사람에게만 보이는 제품
   const SUBTITLE = { '황금이불매트세트': '포장만', '위생매트': '(운구매트)' };   // 제품 버튼 아래에 붙는 안내
-  // 고깔은 시다 대신 꺾기·프레스. 정리정돈·기타(직접입력)는 공정 없음.
-  function procsFor(product){
-    const p = person(); if(!p || NON_PRODUCT.includes(product) || String(product).startsWith('기타: ')) return [];
-    if(FORCE_PROC[product]) return [FORCE_PROC[product]];
-    let list = p[2].slice();
-    if(NO_CUT.includes(product)) list = list.filter(x => x !== '연단' && x !== '재단');   // 연단·재단이 없는 제품
-    if(NO_PROC[product]) list = list.filter(x => !NO_PROC[product].includes(x));
-    const ex = EXTRA_PROC[product]; if(ex && ex.ifAny.some(x => list.includes(x))) list = list.concat(ex.procs);
-    if(product === '고깔' && list.includes('시다')) list = list.filter(x => x !== '시다').concat(['꺾기','프레스']);
-    return PROC_ORDER.filter(x => list.includes(x));
-  }
-  const multiProc = () => { const p = person(); return !!(p && p[2].length > 1); };
-  const showProc = product => multiProc() || procsFor(product).length > 1;   // 봉제만 하는 분도 위생매트(봉제/면모부착)는 공정을 보여 줌
-  const isCutter = () => { const p = person(); return !!(p && p[2].includes(CUT)); };
+  // 공정은 묻지 않음. 예외: 위생매트는 봉제하는 분에게 '봉제 / 면모부착'을 물음
+  //  (운구매트 = 위생매트 + 면모 부착 → 면모부착 시간을 운구매트 원가로 떼어 내려고)
+  const ASK_PROC = { '위생매트': { who: '봉제', procs: ['봉제','면모부착'] } };
+  function procsFor(product){ const p = person(), a = ASK_PROC[product]; return (p && a && p[2].includes(a.who)) ? a.procs.slice() : []; }
   const GROUPS = [
-    ['자주 만드는 제품', ['수의','수시이불세트','황금이불','위생매트','황금이불매트세트','용안위생포','염보']],
+    ['자주 만드는 제품', ['수의','황금이불','위생매트','황금이불매트세트','염보']],
     ['수시용품', ['고깔','목화수시복','멧베','목화꽃신','목화수시포']],
     ['입관부속', ['입관부속','하대','버선','베개','면모','염습끈','턱받이']],
     ['운구 · 의전 용품', ['프리원관보','와플관보','바디백','LED위명패']],
     ['기타', ['우라납바','우라벨크로','매트납바','끈 추리기','우라접기']],
-    ['제품 외', ['공장 및 창고 정리정돈','기타(직접입력)']],
-  ];
-  const NON_PRODUCT = ['공장 및 창고 정리정돈','기타(직접입력)'];
-  const PRODUCTS = GROUPS.flatMap(g => g[1]).filter(p => !NON_PRODUCT.includes(p));
+  ];   // 2026-10: 수시이불세트·용안위생포(측정 끝), 공장 및 창고 정리정돈, 기타(직접입력) 뺌
+  const PRODUCTS = GROUPS.flatMap(g => g[1]);
   // 포장 개수 페이지 목록: 반제품·부자재 제외, 세트 추가
   const COUNT_EXCLUDE = ['위생매트','우라납바','우라벨크로','매트납바','끈 추리기','우라접기'];
   const COUNT_PRODUCTS = PRODUCTS.filter(p => !COUNT_EXCLUDE.includes(p)).flatMap(p => p === '황금이불매트세트' ? [p, '운구매트'] : [p]);   // 운구매트는 포장 개수만 셈
@@ -533,15 +442,18 @@
     const mine = viewLogs();
     const cur = mine.find(l => !l.end);
     const card = $('nowCard');
-    const tag = l => (l.proc && showProc(l.product) ? ' · ' + l.proc : '') + (l.fabric ? ' ' + l.fabric : '') + (l.sheets ? ' ' + l.sheets + '장' : '');
+    const tag = l => l.proc ? ' · ' + l.proc : '';   // 공정은 위생매트 봉제/면모부착(또는 예전 기록)만
     const off = offToday();
     if(cur){ card.className='now'; card.innerHTML = `<div class="lbl">지금 하는 일</div><div class="name">${cur.product}${tag(cur)}</div><div class="since">${cur.start}부터 · <b id="elapsed" data-start="${cur.start}">${elapsedText(cur.start)}</b></div>`; }
     else if(off){ card.className='now empty'; card.innerHTML = `<div class="lbl">오늘</div><div class="name">쉬는 날이에요 (${off})</div>`; }
+    else if(mine.length && toMin(nowHM()) >= dayEnd()){ card.className='now empty'; card.innerHTML = `<div class="lbl">오늘</div><div class="name">일과가 끝났어요</div>`; }
+    else if(mine.length){ const lastEnd = mine.map(l => l.end).filter(Boolean).sort().pop() || '';   // 끝내기를 누른 뒤
+      card.className='now empty'; card.innerHTML = `<div class="lbl">지금 하는 일</div><div class="name">없음</div>` + (lastEnd ? `<div class="since">${lastEnd}에 끝냈어요</div>` : ''); }
     else { card.className='now empty'; card.innerHTML = `<div class="lbl">지금 하는 일</div><div class="name">아직 오늘 일을 누르지 않았어요</div>`; }
     $('btnChange').textContent = cur ? '다른 일 시작하기' : '시작하기';
     $('btnChange').hidden = !!off && !cur; document.querySelector('.hint.warn').hidden = !!off && !cur;
     const r = role();
-    $('btnStop').hidden = !(cur && (actingFrom || r==='office' || r==='admin'));   // 대신 보는 중에는 끝내기도 가능
+    $('btnStop').hidden = !cur;   // 누구나: 제품이 아닌 일(청소·정리 등)을 할 때 눌러 시간이 제품에 붙지 않게
     $('btnCount').hidden = !!actingFrom || !(r==='count' || r==='admin');
     $('btnAll').hidden = !!actingFrom || !wantAll();
     $('btnRename').hidden = !!actingFrom;
@@ -568,7 +480,7 @@
       items.forEach(it => { const b=document.createElement('button'); b.className='btn' + (isLong(it) ? ' long' : '');
         const m=document.createElement('span'); m.className='m'; m.textContent=it; b.appendChild(m);
         if(SUBTITLE[it]){ const sm=document.createElement('small'); sm.textContent=SUBTITLE[it]; b.appendChild(sm); }
-        b.onclick=()=>{ if(it==='기타(직접입력)'){ $('etcText').value=''; show('s-etc'); setTimeout(()=>$('etcText').focus(),50); } else prepare(it); };
+        b.onclick=()=>prepare(it);
         grid.appendChild(b); });
       g.appendChild(grid);
     });
@@ -578,75 +490,31 @@
     ['1','2','3','4','5','6','7','8','9','지우기','0','⌫'].forEach(k => { const b=document.createElement('button'); b.className='btn'+(/\d/.test(k)?'':' fn'); b.textContent=k; b.onclick=()=>onKey(k); el.appendChild(b); }); }
   const pressDigits = (d, k, max) => k==='⌫' ? d.slice(0,-1) : k==='지우기' ? '' : (d.length>=max ? '' : d) + k;
 
-  let helperSel = [];   // 매번 새로 고름
-  function renderHelpers(){ const g = $('cfHelperGrid'); g.innerHTML = '';
-    HELPERS.filter(h => h !== me).forEach(h => { const b = document.createElement('button'); b.className = 'btn' + (helperSel.includes(h) ? ' sel' : ''); b.textContent = h;
-      b.onclick = () => { helperSel = helperSel.includes(h) ? helperSel.filter(x => x !== h) : helperSel.concat([h]); b.classList.toggle('sel', helperSel.includes(h)); };
-      g.appendChild(b); }); }
-
-  // ---- 1) 제품을 누르면 바로 시작. 공정이 둘 이상인 분만 공정 버튼을 한 번 더 누름(누르면 바로 시작)
+  // ---- 제품을 누르면 바로 시작 (위생매트를 봉제하는 분만 '봉제 / 면모부착'을 한 번 더 누름)
   function prepare(product){
     const list = procsFor(product);
-    pending = { product, proc: list.length === 1 ? list[0] : '', sheets: 0, fabric: '', memo: '', helpers: [] };
-    if(list.length <= 1){ startNow(); return; }
+    pending = { product, proc: '' };
+    if(!list.length){ startNow(); return; }
     $('cfName').textContent = product;
     const g = $('cfProcs'); g.innerHTML = '';
     list.forEach(pr => { const btn = document.createElement('button'); btn.className = 'btn'; btn.textContent = pr;
-      btn.onclick = () => { pending.proc = pr;
-        if(pr === CUT) openFab();     // 연단: 원단 → 장수 → 같이 하는 분·메모 → 시작
-        else startNow(); };           // 재단·시다·포장: 바로 시작 (메모는 기록의 '수정'에서)
-      g.appendChild(btn); });
+      btn.onclick = () => { pending.proc = pr; startNow(); }; g.appendChild(btn); });
     show('s-confirm');
   }
-  $('btnEtcNext').onclick = () => { const t=$('etcText').value.trim(); if(!t){ toast('무슨 일인지 적어 주세요'); return; } prepare('기타: '+t); };
-
-  // ---- 2) 연단: 원단 (목록이 있으면 누르는 즉시 다음, 없으면 적거나 비워두고 다음)
-  function openFab(){
-    const list = FABRICS[pending.product] || []; pending.fabric = '';
-    $('fabName').textContent = pending.product;
-    const g = $('fabGrid'); g.innerHTML = ''; $('fabText').value = '';
-    list.concat(list.length ? ['직접입력'] : []).forEach(f => { const b = document.createElement('button'); b.className = 'btn'; b.textContent = f;
-      b.onclick = () => { if(f === '직접입력'){ $('fabTextWrap').hidden = false; setTimeout(()=>$('fabText').focus(), 50); } else { pending.fabric = f; openSheetsIn(); } };
-      g.appendChild(b); });
-    $('fabTextWrap').hidden = list.length > 0;     // 목록이 없는 제품은 입력칸만 (비워도 됨)
-    show('s-fab');
-  }
-  $('btnFabNext').onclick = () => { pending.fabric = $('fabText').value.trim(); openSheetsIn(); };
-
-  // ---- 3) 연단: 장수
-  let siDigits = '';
-  function openSheetsIn(){ siDigits = ''; $('siName').textContent = pending.product + (pending.fabric ? ' · ' + pending.fabric : ''); $('siVal').textContent = '__ 장'; show('s-sheetsIn'); }
-  makePad($('siPad'), k => { siDigits = pressDigits(siDigits, k, 4); $('siVal').textContent = (siDigits || '__') + ' 장'; });
-  $('btnSiNext').onclick = () => { const n = parseInt(siDigits,10)||0; if(n<=0){ toast('몇 장 연단할지 숫자를 눌러 주세요'); return; } pending.sheets = n; openFinal(); };
-
-  // ---- 4) 연단 마지막: 같이 하는 분 · 메모 · 시작
-  function openFinal(){
-    $('fnName').textContent = pending.product;
-    $('fnSub').textContent = pending.proc + (pending.fabric ? ' · ' + pending.fabric : '') + (pending.sheets ? ' · ' + pending.sheets + '장' : '') + ' · ' + startHM() + ' 부터';
-    $('fnHelpers').hidden = false; helperSel = []; renderHelpers();
-    $('cfMemo').value = ''; show('s-final');
-  }
-  $('btnFinalStart').onclick = () => { pending.helpers = helperSel.filter(h => h !== me); pending.memo = $('cfMemo').value.trim(); startNow(); };
-  $('btnFinalBack').onclick = () => show('s-sheetsIn');
 
   function startNow(){
     if(offToday()){ toast('오늘은 쉬는 날(' + offToday() + ')이라 등록할 수 없어요', 2600); show('s-home'); return; }
     if(toMin(nowHM()) >= dayEnd()){ toast('오늘 일과(' + toHM(dayEnd()) + ')가 끝나서 더 등록할 수 없어요', 2600); show('s-home'); return; }
-    ensureToday(); const cur = day.logs.find(l => !l.end);
-    if(cur && cur.proc === CUT && cur.sheets){ openSheets('start', cur); return; }   // 직전 일이 연단이면 장수 확인부터
-    doStart(null);
-  }
-  function doStart(prevSheets){
-    const { product, proc, sheets, fabric, memo } = pending; const helpers = pending.helpers || [];
-    const start = startHM(); const obj = { type:'start', date: today(), product, proc: proc || '', sheets: sheets || '', fabric: fabric || '', memo: memo || '', start, prevSheets: prevSheets == null ? null : prevSheets, helpers };
+    const { product, proc } = pending;
+    const start = startHM(); const obj = { type:'start', date: today(), product, proc: proc || '', start };
     let prevEndBefore = null;   // 되돌리기용: 이번 시작으로 닫힌 앞 기록의 원래 종료(열려 있었으니 '')
     send(obj, () => {
-      day.logs.forEach(l => { if(!l.end){ prevEndBefore = ''; let e = toHM(snapEnd(toMin(start))); if(toMin(e) < toMin(l.start)) e = l.start; l.end = e; if(prevSheets != null) l.sheets = prevSheets; } });
-      day.logs.push({ date: today(), who: me, product, proc: proc || '', sheets: sheets || '', fabric: fabric || '', memo: memo || '', start, end: '' });
+      day.logs.forEach(l => { if(!l.end){ prevEndBefore = ''; let e = toHM(snapEnd(toMin(start))); if(toMin(e) < toMin(l.start)) e = l.start; l.end = e; } });
+      day.logs.push({ date: today(), who: me, product, proc: proc || '', start, end: '' });
     });
-    const label = product + (proc && showProc(product) ? ' ' + proc : '') + (fabric ? ' ' + fabric : '') + (sheets ? ' ' + sheets + '장' : '');
-    show('s-home'); flashDone((actingFrom ? me + ' · ' : '') + label + ' 시작', start + ' 부터' + (helpers.length ? ' · 시다 ' + helpers.length + '명 함께' : ''));
-    if(proc !== CUT) showUndo(label, { obj, product, start, prevEndBefore });   // 연단은 같이 하는 분 기록까지 생기므로 되돌리기 없음 (기록의 '수정'에서 지움)
+    const label = product + (proc ? ' ' + proc : '');
+    show('s-home'); flashDone((actingFrom ? me + ' · ' : '') + label + ' 시작', start + ' 부터');
+    showUndo(label, { obj, product, start, prevEndBefore });
   }
 
   // ============ 방금 시작한 것 되돌리기: 잘못 눌렀을 때 몇 초 안에 한 번 더 누르면 없던 일로
@@ -673,31 +541,13 @@
     toast(u.product + ' 시작을 되돌렸어요', 2200);
   };
 
-  // ============ 연단 장수 확인 / 고치기
-  let shMode = null, shLog = null, shDigits = '';
-  function openSheets(mode, log){
-    shMode = mode; shLog = log; shDigits = '';
-    $('shName').textContent = log.product; $('shVal').textContent = log.sheets + ' 장';
-    $('shQ').textContent = mode==='start' ? '시작할 때 적은 장수가 맞으신가요?' : '연단 장수를 고칠까요?';
-    $('shEdit').hidden = true; $('btnShYes').hidden = false; $('btnShNo').hidden = false; show('s-sheets');
-  }
-  $('btnShYes').onclick = () => { if(shMode==='start') doStart(null); else show('s-home'); };
-  $('btnShNo').onclick = () => { $('shEdit').hidden = false; $('btnShYes').hidden = true; $('btnShNo').hidden = true; shDigits=''; $('shVal').textContent = '__ 장'; };
-  makePad($('shPad'), k => { shDigits = pressDigits(shDigits, k, 4); $('shVal').textContent = (shDigits || '__') + ' 장'; });
-  $('btnShSave').onclick = () => {
-    const n = parseInt(shDigits,10)||0; if(n<=0){ toast('장수를 눌러 주세요'); return; }
-    if(shMode==='start'){ doStart(n); return; }
-    const l = shLog; send({ type:'sheets', date: today(), row: l.row || null, product: l.product, oldStart: l.start, sheets: n }, () => { l.sheets = n; });
-    toast('연단 장수를 ' + n + '장으로 고쳤어요'); show('s-home');
-  };
-  $('btnShBack').onclick = () => { if(shMode !== 'start') show('s-edit'); else if(stack.length) history.back(); else show('s-home'); };   // 시작 중이면 직전 화면(제품·공정)으로
   // ============ 끝내기 (사무직이 현장 일을 마치고 돌아갈 때)
   $('btnStop').onclick = () => {
     hideUndo(); ensureToday(); const cur = day.logs.find(l => !l.end); if(!cur) return;
     let at = toHM(snapEnd(toMin(nowHM()))); if(toMin(at) < toMin(cur.start)) at = cur.start;
     const prod = cur.product;
     send({ type:'stop', date: today(), at }, () => { cur.end = at; });
-    flashDone(prod + ' 끝', at + ' 까지'); show('s-home');
+    flashDone((actingFrom ? me + ' · ' : '') + prod + ' 끝', at + ' 까지'); show('s-home');
   };
 
   // ============ 기록 수정: 메뉴 → 시각 / 장수 / 내용 / 삭제
@@ -714,12 +564,11 @@
   $('tfEnd').onclick = () => { edField = 'end'; edRender(); };
   function openEdit(i){ ensureToday(); edIdx = i; const l = day.logs[i]; if(!l) return;
     $('edName').textContent = l.product + (l.proc ? ' · ' + l.proc : '');
-    $('edSub').textContent = l.start + ' ~ ' + (l.end || '지금') + (l.fabric ? ' · ' + l.fabric : '') + (l.sheets ? ' · ' + l.sheets + '장' : '') + (l.memo ? ' · 메모: ' + l.memo : '');
-    $('btnEdSheets').hidden = !l.sheets; $('btnEdContent').hidden = false;   // 누구나 (제품·공정은 정해진 목록에서만 고름)
+    $('edSub').textContent = l.start + ' ~ ' + (l.end || '지금') + (l.memo ? ' · 메모: ' + l.memo : '');
+    $('btnEdContent').hidden = false;   // 누구나 (제품은 정해진 목록에서만 고름)
     show('s-edit'); }
   $('btnEdTime').onclick = () => { const l = day.logs[edIdx]; if(!l) return; edField = 'start'; edD = { start: '', end: '' };
     $('etName').textContent = l.product + (l.proc ? ' · ' + l.proc : ''); edRender(); show('s-edtime'); };
-  $('btnEdSheets').onclick = () => { const l = day.logs[edIdx]; if(l) openSheets('edit', l); };
   $('btnEdSave').onclick = () => {
     const l = day.logs[edIdx]; if(!l) return; const prev = day.logs[edIdx-1], next = day.logs[edIdx+1];
     let ns = l.start, ne = l.end || '', snappedS = false, snappedE = false;
@@ -748,39 +597,28 @@
     toast('지웠어요'); show('s-home');
   };
 
-  // ---- 작업 내용 고치기: 제품·공정은 정해진 목록에서만 고름 (이름을 새로 지을 수 없음)
-  let ce = { product: '', proc: '', fabric: '' };
+  // ---- 작업 내용 고치기: 제품은 정해진 목록에서만 고름 (이름을 새로 지을 수 없음). 위생매트를 봉제하는 분만 봉제/면모부착도 고름
+  let ce = { product: '', proc: '' };
   function ceRenderProcs(){
     const g = $('ceProcGrid'); g.innerHTML = '';
     const list = procsFor(ce.product); if(!list.includes(ce.proc)) ce.proc = list[0] || '';
     list.forEach(pr => { const b = document.createElement('button'); b.className = 'btn' + (pr===ce.proc ? ' sel' : ''); b.textContent = pr;
       b.onclick = () => { ce.proc = pr; ceRenderProcs(); }; g.appendChild(b); });
-    if(!list.length){ const n = document.createElement('div'); n.className='hint'; n.textContent = '공정 없음'; g.appendChild(n); }
-    $('ceFabricWrap').hidden = ce.proc !== CUT; if(ce.proc === CUT) ceRenderFabrics();
-  }
-  function ceRenderFabrics(){
-    const g = $('ceFabricGrid'); g.innerHTML = ''; const list = FABRICS[ce.product] || [];
-    list.concat(['직접입력']).forEach(f => { const b = document.createElement('button'); b.className = 'btn' + (f===ce.fabric || (f==='직접입력' && ce.fabric && !list.includes(ce.fabric)) ? ' sel' : ''); b.textContent = f;
-      b.onclick = () => { [...g.children].forEach(x => x.classList.toggle('sel', x === b));
-        if(f === '직접입력'){ $('ceFabricText').hidden = false; $('ceFabricText').value = list.includes(ce.fabric) ? '' : ce.fabric; setTimeout(()=>$('ceFabricText').focus(),50); }
-        else { ce.fabric = f; $('ceFabricText').hidden = true; } };
-      g.appendChild(b); });
-    $('ceFabricText').hidden = !(ce.fabric && !list.includes(ce.fabric)); if(!$('ceFabricText').hidden) $('ceFabricText').value = ce.fabric;
+    $('ceProcWrap').hidden = !list.length;
   }
   $('btnEdContent').onclick = () => { const l = day.logs[edIdx]; if(!l) return;
-    ce = { product: l.product, proc: l.proc || '', fabric: l.fabric || '' };
+    ce = { product: l.product, proc: l.proc || '' };
     const g = $('ceProductGrid'); g.innerHTML = '';
-    const items = PRODUCTS.concat(NON_PRODUCT.filter(x => x !== '기타(직접입력)'));
-    if(!items.includes(ce.product)) items.unshift(ce.product);   // 기타로 적은 이름은 그대로 두고 고를 수 있게
+    const items = PRODUCTS.slice();
+    if(!items.includes(ce.product)) items.unshift(ce.product);   // 목록에서 빠진 제품(예전 기록)은 그대로 두고 고를 수 있게
     items.forEach(p => { const b = document.createElement('button'); b.className = 'btn' + (p===ce.product ? ' sel' : '') + (isLong(p) ? ' long' : ''); b.textContent = p;
       b.onclick = () => { ce.product = p; [...g.children].forEach(x => x.classList.toggle('sel', x === b)); ceRenderProcs(); }; g.appendChild(b); });
     ceRenderProcs(); $('ceMemo').value = l.memo || ''; show('s-content'); };
   $('btnCeSave').onclick = () => {
     const l = day.logs[edIdx]; if(!l) return;
-    const nf = ce.proc === CUT ? ($('ceFabricText').hidden ? ce.fabric : $('ceFabricText').value.trim()) : '';
-    const np = ce.product, nc = ce.proc, nm = $('ceMemo').value.trim();
+    const np = ce.product, nc = ce.proc, nm = $('ceMemo').value.trim(), nf = l.fabric || '';   // 원단은 예전 기록 값 그대로 둠
     send({ type:'content', date: today(), row: l.row || null, product: l.product, oldStart: l.start, newProduct: np, newProc: nc, fabric: nf, memo: nm }, () => {
-      l.product = np; l.proc = nc; l.fabric = nf; l.memo = nm; });
+      l.product = np; l.proc = nc; l.memo = nm; });
     toast('작업 내용을 고쳤어요'); show('s-home');
   };
 
@@ -822,17 +660,17 @@
   // ============ 화면: 전체 기록 (실장)
   function renderAll(){
     const rows = day.all || [];
-    let h = '<tr><th>이름</th><th>제품</th><th>공정</th><th>시작</th><th>종료</th><th>분</th></tr>';
-    rows.forEach(l => h += `<tr><td>${l.who}</td><td>${l.product}</td><td>${l.proc || ''}${l.sheets ? ' ' + l.sheets + '장' : ''}</td><td>${l.start}</td><td>${l.end || '진행 중'}</td><td>${l.mins ?? ''}</td></tr>`);
-    if(!rows.length) h += '<tr><td colspan="6">오늘 기록 없음 (새로 불러오기를 눌러 보세요)</td></tr>';
-    if(day.counts.length){ h += '<tr><th colspan="6">오늘 포장 끝난 개수</th></tr>'; day.counts.forEach(c => h += `<tr><td>${c.who}</td><td>${c.product}</td><td colspan="4">${c.qty}개</td></tr>`); }
+    let h = '<tr><th>이름</th><th>제품</th><th>시작</th><th>종료</th><th>분</th></tr>';
+    rows.forEach(l => h += `<tr><td>${l.who}</td><td>${l.product}${l.proc ? ' · ' + l.proc : ''}</td><td>${l.start}</td><td>${l.end || '진행 중'}</td><td>${l.mins ?? ''}</td></tr>`);
+    if(!rows.length) h += '<tr><td colspan="5">오늘 기록 없음 (새로 불러오기를 눌러 보세요)</td></tr>';
+    if(day.counts.length){ h += '<tr><th colspan="5">오늘 포장 끝난 개수</th></tr>'; day.counts.forEach(c => h += `<tr><td>${c.who}</td><td>${c.product}</td><td colspan="3">${c.qty}개</td></tr>`); }
     $('allTable').innerHTML = h;
   }
   // ============ 화면: 진행 상황 — 지금 누가 뭐 하는지 (차장님·실장님). 안 누른 분이 빨갛게 맨 위로
   function renderStatus(){
     ensureToday(); const all = day.all || []; const now = toMin(nowHM());
     const late = now >= dayEnd(), early = now < DAY_START, off = offToday();
-    const desc = l => l.product + (l.proc ? ' · ' + l.proc : '') + (l.fabric ? ' ' + l.fabric : '') + (l.sheets ? ' ' + l.sheets + '장' : '');
+    const desc = l => l.product + (l.proc ? ' · ' + l.proc : '');
     const rows = PEOPLE.map(p => {
       const name = p[0], mine = all.filter(l => l.who === name), cur = mine.find(l => !l.end), last = mine[mine.length - 1];
       if(off) return { name, cls: 'idle', d: '', e: '쉬는 날', o: 3 };
@@ -841,7 +679,7 @@
       if(early) return { name, cls: 'idle', d: '', e: '아직 시작 전', o: 3 };
       const office = p[1] === 'office' || p[1] === 'admin';   // 사무실 분들은 안 눌러도 정상
       if(office) return { name, cls: 'idle', d: last ? desc(last) + ' · ' + last.end + '까지' : '', e: '사무실', o: 2 };
-      return { name, cls: 'miss', d: last ? desc(last) + ' · ' + last.end + '까지' : '오늘 아직 기록 없음', e: '아직 안 누름', o: 0 };
+      return { name, cls: 'miss', d: last ? desc(last) + ' · ' + last.end + '까지' : '오늘 아직 기록 없음', e: last ? '하는 일 없음' : '아직 안 누름', o: 0 };
     });
     rows.sort((a, b) => a.o - b.o);
     const list = $('statusList'); list.innerHTML = '';
