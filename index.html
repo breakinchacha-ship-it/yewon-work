@@ -254,7 +254,7 @@
 (function(){
   // ============ 설정: 구글 시트 웹 앱 주소 (배포 후 나온 /exec 주소를 따옴표 안에 붙여넣기)
   const SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbz_bdMhHIwyGthi9aaUJ4Ba1nd5SZNKKh5jDWjJnwQDE4sVHRTD6Vqpx-kX-xqLg-Cj/exec';
-  const APP_VERSION = '2.6.2';
+  const APP_VERSION = '2.6.3';
 
   // ============ 기준 데이터
   // [이름, 역할, 하는 일]  역할: count=포장 개수 입력·진행 상황, office=사무실 분(진행 상황에서 '사무실'로 표시), admin=전체 기록
@@ -280,7 +280,7 @@
   function procsFor(product){ const p = person(), a = ASK_PROC[product]; return (p && a && p[2].includes(a.who)) ? a.procs.slice() : []; }
   const GROUPS = [
     ['자주 만드는 제품', ['수의','황금이불','위생매트','황금이불매트세트','염보']],
-    ['수시용품', ['고깔','목화수시복','멧베','목화꽃신','목화수시포']],
+    ['수시용품', ['목화수시복','멧베','목화꽃신','목화수시포']],   // 2026-10-22 고깔 뺌(측정 끝)
     ['입관부속', ['입관부속','하대','버선','원형베개','사각베개','면모','염습끈','턱받이']],
     ['운구 · 의전 용품', ['프리원관보','와플관보','바디백','LED위명패']],
     ['기타', ['우라납바','우라벨크로','매트납바','끈 추리기','우라접기']],
