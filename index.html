@@ -126,6 +126,12 @@
   .st .n i{font-style:normal;color:var(--ink-2);font-weight:700;margin-left:4px}
   .acting{position:sticky;top:0;z-index:12;display:flex;justify-content:space-between;align-items:center;gap:10px;background:var(--stop);color:#fff;font-weight:900;font-size:1.05rem;padding:10px 12px 10px 16px;margin:-16px -14px 14px;word-break:keep-all}
   .acting button{background:#fff;color:var(--stop);border:0;border-radius:12px;font:inherit;font-weight:900;font-size:1rem;padding:10px 14px;white-space:nowrap;flex:none}
+  /* 기록 종료 안내 (2026-10-31부터): 버튼 없음 */
+  #s-end.on{display:flex;min-height:calc(100vh - 56px);align-items:center;justify-content:center}
+  .endwrap{text-align:center;padding:24px 6px;word-break:keep-all}
+  .endlogo{display:block;width:120px;height:120px;border-radius:28px;margin:0 auto 30px;background:#fff;box-shadow:0 6px 20px rgba(31,58,95,.16)}
+  .endt{font-size:2.2rem;font-weight:900;line-height:1.25;margin:0 0 22px;text-wrap:balance}
+  .ends{font-size:1.3rem;font-weight:700;color:var(--ink-2);line-height:1.5;margin:0 0 14px}
   @media (prefers-reduced-motion: reduce){ .btn:active{transform:none} .toast{transition:none} }
 </style>
 </head>
@@ -245,6 +251,16 @@
     <button class="btn btn-back" data-go="s-home">돌아가기</button>
   </section>
 
+  <!-- 기록 종료 안내: 2026-10-31(토) 0시부터 이 화면만 보임 -->
+  <section class="screen" id="s-end">
+    <div class="endwrap">
+      <img class="endlogo" src="icon-192.png" alt="">
+      <h1 class="endt">작업 기록이 끝났습니다</h1>
+      <p class="ends">지금까지 매일 눌러 주셔서<br>감사합니다.</p>
+      <p class="ends">이제 버튼을<br>누르지 않으셔도 됩니다.</p>
+    </div>
+  </section>
+
 </div>
 <div class="undo" id="undoBar" hidden><span id="undoText"></span><button class="btn u" id="btnUndo">되돌리기<small id="undoN">6</small></button></div>
 <div class="done" id="done"><div class="chk">✓</div><div class="t" id="doneT"></div><div class="s" id="doneS"></div></div>
@@ -254,7 +270,11 @@
 (function(){
   // ============ 설정: 구글 시트 웹 앱 주소 (배포 후 나온 /exec 주소를 따옴표 안에 붙여넣기)
   const SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbz_bdMhHIwyGthi9aaUJ4Ba1nd5SZNKKh5jDWjJnwQDE4sVHRTD6Vqpx-kX-xqLg-Cj/exec';
-  const APP_VERSION = '2.6.3';
+  const APP_VERSION = '2.7.0';
+  // ============ 기록 종료: 이 시각부터는 안내 화면만 보이고 새 기록을 받지 않음 (2026-10-27 결정)
+  //  미리 보기: 주소 끝에 ?end 를 붙이면 지금도 안내 화면을 볼 수 있음
+  const END_AT = new Date('2026-10-31T00:00:00+09:00').getTime();
+  const ENDED = Date.now() >= END_AT || /[?&]end\b/.test(location.search);
 
   // ============ 기준 데이터
   // [이름, 역할, 하는 일]  역할: count=포장 개수 입력·진행 상황, office=사무실 분(진행 상황에서 '사무실'로 표시), admin=전체 기록
@@ -340,7 +360,7 @@
     if(!stack.length) return;                       // 홈: 브라우저가 알아서 나감
     const prev = stack.pop(); if(prev === 's-all' && actingFrom) exitActing(true); if(renderers[prev]) renderers[prev](); show(prev, true);
   });
-  function toast(t, ms){ const el=$('toast'); el.textContent=t; el.classList.add('show'); clearTimeout(el._t); el._t=setTimeout(()=>el.classList.remove('show'), ms||1800); }
+  function toast(t, ms){ if(ENDED) return; const el=$('toast'); el.textContent=t; el.classList.add('show'); clearTimeout(el._t); el._t=setTimeout(()=>el.classList.remove('show'), ms||1800); }
   const person = () => PEOPLE.find(p => p[0] === me);
   const role = () => { const p = PEOPLE.find(x => x[0] === (actingFrom || me)); return p ? (p[1] || '') : ''; };   // 역할은 폰 주인 기준
   const wantAll = () => role() === 'admin' || role() === 'count';   // 남들 기록도 받아오는 사람 (진행 상황 화면)
@@ -411,6 +431,7 @@
   // 등록 보내기: 먼저 화면에 반영하고, 서버로 보내고, 실패하면 대기열. 보내는 중인 건은 inflight 에 둠(되돌리기가 기다림)
   let inflight = null;
   async function send(obj, localApply){
+    if(Date.now() >= END_AT){ location.reload(); return; }   // 기록 종료 뒤에는 보내지 않음
     if(!obj.who) obj.who = me; if(!obj.device) obj.device = devTag();   // 나중에 대기열로 보내도 누구 기록인지 안 바뀌게
     ensureToday(); localApply(); store.set('day', day); renderHome();
     if(!configured()) return;
@@ -723,11 +744,22 @@
   $('btnAll').onclick = openAll;
   $('btnRename').onclick = () => show('s-name');
   document.querySelectorAll('[data-go]').forEach(b => b.onclick = () => { if(b.dataset.go==='s-home') renderHome(); if(b.dataset.go==='s-pick') renderPick(); if(b.dataset.go==='s-count') renderCount(); show(b.dataset.go); });
-  setInterval(()=>{ $('clock').textContent = nowHM(); const e = $('elapsed'); if(e) e.textContent = elapsedText(e.dataset.start); }, 1000); $('clock').textContent = nowHM();
+  if('serviceWorker' in navigator){ navigator.serviceWorker.register('sw.js').catch(()=>{}); }
+
+  // ============ 기록이 끝난 뒤: 안내 화면만 (버튼 없음)
+  //  금요일까지 인터넷 문제로 못 올라간 기록이 폰에 남아 있으면 화면에 아무것도 띄우지 않고 마저 보냄
+  if(ENDED){
+    document.querySelectorAll('.screen').forEach(s => s.classList.remove('on')); $('s-end').classList.add('on'); curScreen = 's-end';
+    setInterval(flush, 60*1000); window.addEventListener('online', flush); flush();
+    return;
+  }
+
+  setInterval(()=>{ if(Date.now() >= END_AT){ location.reload(); return; }   // 앱을 켜 둔 채 종료 시각을 넘기면 안내 화면으로
+    $('clock').textContent = nowHM(); const e = $('elapsed'); if(e) e.textContent = elapsedText(e.dataset.start); }, 1000); $('clock').textContent = nowHM();
   setInterval(flush, 60*1000);
   window.addEventListener('online', flush);
-  document.addEventListener('visibilitychange', () => { if(!document.hidden && me){ refresh().then(()=>{ if($('s-home').classList.contains('on')) renderHome(); }); } });
-  if('serviceWorker' in navigator){ navigator.serviceWorker.register('sw.js').catch(()=>{}); }
+  document.addEventListener('visibilitychange', () => { if(document.hidden) return; if(Date.now() >= END_AT){ location.reload(); return; }
+    if(me){ refresh().then(()=>{ if($('s-home').classList.contains('on')) renderHome(); }); } });
 
   renderNames();
   if(me){ renderHome(); show('s-home'); refresh().then(renderHome); } else show('s-name');
